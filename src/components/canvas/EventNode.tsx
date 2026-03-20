@@ -89,24 +89,22 @@ function EventNodeComponent({ data, xPos, id, selected }: NodeProps<EventNodeDat
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Handles */}
-      {!isReadOnly && (
-        <>
-          <Handle
-            type="target"
-            position={Position.Left}
-            className="!w-3.5 !h-3.5 !border-2 !bg-white"
-            style={{ borderColor: color, top: '40%' }}
-            title="Entrada de dependência"
-          />
-          <Handle
-            type="source"
-            position={Position.Right}
-            className="!w-3.5 !h-3.5 !border-2 !bg-white"
-            style={{ borderColor: color, top: '40%' }}
-            title="Arraste para conectar"
-          />
-        </>
-      )}
+      <>
+        <Handle
+          type="target"
+          position={Position.Left}
+          className={`!w-3.5 !h-3.5 !border-2 !bg-white ${isReadOnly ? 'opacity-0 !pointer-events-none' : ''}`}
+          style={{ borderColor: color, top: '40%' }}
+          title="Entrada de dependência"
+        />
+        <Handle
+          type="source"
+          position={Position.Right}
+          className={`!w-3.5 !h-3.5 !border-2 !bg-white ${isReadOnly ? 'opacity-0 !pointer-events-none' : ''}`}
+          style={{ borderColor: color, top: '40%' }}
+          title="Arraste para conectar"
+        />
+      </>
 
       {/* Diamond + color picker container styled with exact diagonal height to push text down correctly */}
       <div className="relative flex items-center justify-center" style={{ width: 62 * nodeScale, height: 62 * nodeScale }}>

@@ -12,6 +12,7 @@ import { TaskNode } from '@/components/canvas/TaskNode'
 import { EventNode } from '@/components/canvas/EventNode'
 import { CustomEdge } from '@/components/canvas/CustomEdge'
 import { TextNode } from '@/components/canvas/TextNode'
+import { SummarySidebar } from '@/components/canvas/SummarySidebar'
 
 function ShareViewer({ projectId }: { projectId: string }) {
   const [loading, setLoading] = useState(true)
@@ -79,6 +80,7 @@ function ShareViewer({ projectId }: { projectId: string }) {
           Modo Visualização
         </div>
       </div>
+      <SummarySidebar />
 
       <div style={{ position: 'absolute', top: 48, left: 0, right: 0, bottom: 0 }}>
         <ReactFlow
@@ -86,7 +88,6 @@ function ShareViewer({ projectId }: { projectId: string }) {
           edges={edges}
           nodesDraggable={false}
           nodesConnectable={false}
-          elementsSelectable={false}
           panOnDrag={true}
           zoomOnScroll={true}
           zoomOnDoubleClick={false}

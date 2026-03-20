@@ -240,24 +240,20 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
             : '0 2px 14px 0 rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.04)',
         }}
       >
-        {!isReadOnly && (
           <Handle
             type="target"
             position={Position.Left}
-            className="!w-3.5 !h-3.5 !bg-white !border-2 !-left-2.5 transition-transform hover:scale-125"
+            className={`!w-3.5 !h-3.5 !bg-white !border-2 !-left-2.5 transition-transform ${!isReadOnly ? 'hover:scale-125' : 'opacity-0 !pointer-events-none'}`}
             style={{ borderColor: accentColor, top: '50%' }}
             title="Entrada de dependência"
           />
-        )}
-        {!isReadOnly && (
           <Handle
             type="source"
             position={Position.Right}
-            className="!w-4 !h-4 !bg-white !border-2 !-right-5 transition-transform hover:scale-125 hover:bg-gray-50 cursor-crosshair"
+            className={`!w-4 !h-4 !bg-white !border-2 !-right-5 transition-transform ${!isReadOnly ? 'hover:scale-125 hover:bg-gray-50 cursor-crosshair' : 'opacity-0 !pointer-events-none'}`}
             style={{ borderColor: accentColor, top: '50%' }}
             title="Arraste para conectar com outro card"
           />
-        )}
 
         {/* LOD Constraints */}
         <div className={`flex flex-col h-full w-full ${zoom < 0.15 ? 'p-2 justify-center' : 'p-3 space-y-3'}`}>
