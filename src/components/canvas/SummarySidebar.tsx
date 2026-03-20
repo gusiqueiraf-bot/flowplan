@@ -83,9 +83,14 @@ export function SummarySidebar() {
   };
 
   const getStageCount = (label: string) => taskNodes.filter(n => n.data.stage === label).length;
-  const getPersonCount = (id: string) => taskNodes.filter(n => n.data.responsibleId === id).length;
+  const getPersonCount = (id: string) => taskNodes.filter(n => (n.data.assigneeIds as string[] | undefined)?.includes(id)).length;
   
-  const orphansCount = taskNodes.filter(n => !n.data.responsibleId).length;
+  const orphansCount = taskNodes.filter(n => !(n.data.assigneeIds as string[] | undefined)?.length).length;
+
+  const previstoCount = taskNodes.filter(n => n.data.status === 'Previsto' || !n.data.status).length;
+  const emAndamentoCount = taskNodes.filter(n => n.data.status === 'Em Andamento').length;
+  const atrasadoCount = taskNodes.filter(n => n.data.status === 'Atrasado').length;
+  const concluidoCount = taskNodes.filter(n => n.data.status === 'Concluído').length;
 
   return (
     <div 
@@ -116,8 +121,35 @@ export function SummarySidebar() {
           </div>
           <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100 flex flex-col items-center justify-center text-center mb-2">
               <Calendar className="w-5 h-5 text-indigo-500 mb-1" />
-              <span className="text-xl font-black text-indigo-700">{format(finalDate, "dd 'de' MMMM, yyyy", { locale: ptBR })}</span>
+              <span className="text-xl font-black text-indigo-700">
+                {finalDate instanceof Date && !isNaN(finalDate.getTime()) 
+                  ? format(finalDate, "dd 'de' MMMM, yyyy", { locale: ptBR }) 
+                  : 'N/A'}
+              </span>
               <span className="text-[10px] uppercase font-bold text-indigo-600/70 tracking-wider mt-1">Data Final do Projeto</span>
+          </div>
+
+          {/* STATUS */}
+          <div>
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1.5"><Flag className="w-3.5 h-3.5"/> Status</h3>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-gray-50 border border-gray-100 p-3 rounded-lg flex flex-col items-center justify-center">
+                <span className="text-lg font-black text-gray-600">{previstoCount}</span>
+                <span className="text-[10px] uppercase font-bold text-gray-400 mt-0.5">Previsto</span>
+              </div>
+              <div className="bg-blue-50 border border-blue-100 p-3 rounded-lg flex flex-col items-center justify-center">
+                <span className="text-lg font-black text-blue-600">{emAndamentoCount}</span>
+                <span className="text-[10px] uppercase font-bold text-blue-400 mt-0.5">Andamento</span>
+              </div>
+              <div className="bg-red-50 border border-red-100 p-3 rounded-lg flex flex-col items-center justify-center">
+                <span className="text-lg font-black text-red-600">{atrasadoCount}</span>
+                <span className="text-[10px] uppercase font-bold text-red-400 mt-0.5">Atrasado</span>
+              </div>
+              <div className="bg-green-50 border border-green-100 p-3 rounded-lg flex flex-col items-center justify-center">
+                <span className="text-lg font-black text-green-600">{concluidoCount}</span>
+                <span className="text-[10px] uppercase font-bold text-green-400 mt-0.5">Concluído</span>
+              </div>
+            </div>
           </div>
 
           {/* ETAPAS */}

@@ -80,9 +80,9 @@ function EventNodeComponent({ data, xPos, id, selected }: NodeProps<EventNodeDat
           minWidth={40}
           minHeight={40}
           handleStyle={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid white' }}
-          onResizeStart={() => useStore.temporal.getState().pause()}
+          onResizeStart={() => undefined}
           onResizeEnd={() => {
-            useStore.temporal.getState().resume();
+            useStore.getState().pushHistory();
             useStore.setState((s) => ({ ...s }));
           }}
           onResize={(_, params) => {

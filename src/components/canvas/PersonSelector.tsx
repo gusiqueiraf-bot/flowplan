@@ -13,9 +13,9 @@ function getInitials(name: string) {
 }
 
 interface Props {
-  /** Currently selected person id */
-  value?: string;
-  onChange: (personId: string | undefined) => void;
+  /** Currently selected person ids */
+  value?: string[];
+  onChange: (personIds: string[]) => void;
 }
 
 export function PersonSelector({ value, onChange }: Props) {
@@ -40,7 +40,7 @@ export function PersonSelector({ value, onChange }: Props) {
     if (newName.trim()) {
       const newId = `per-${Date.now()}`;
       addPerson({ id: newId, name: newName.trim(), color: newColor });
-      onChange(newId);
+      onChange([...(value || []), newId]);
     }
     setNewName('');
     setAdding(false);
@@ -64,7 +64,7 @@ export function PersonSelector({ value, onChange }: Props) {
       {/* Person pills */}
       <div className="flex flex-wrap gap-2">
         {people.map((person) => {
-          const selected = value === person.id;
+          const selected = value?.includes(person.id);
           const isEditing = editingId === person.id;
 
           return (
@@ -108,7 +108,13 @@ export function PersonSelector({ value, onChange }: Props) {
               ) : (
                 <button
                   type="button"
-                  onClick={() => onChange(selected ? undefined : person.id)}
+                  onClick={() => {
+                    if (selected) {
+                      onChange((value || []).filter(id => id !== person.id));
+                    } else {
+                      onChange([...(value || []), person.id]);
+                    }
+                  }}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-full text-white text-xs font-semibold transition-all hover:brightness-110 active:scale-95"
                   style={{
                     backgroundColor: person.color,
@@ -144,7 +150,9 @@ export function PersonSelector({ value, onChange }: Props) {
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (value === person.id) onChange(undefined);
+                      if (value?.includes(person.id)) {
+                        onChange((value || []).filter(id => id !== person.id));
+                      }
                       removePerson(person.id);
                     }}
                     className="w-4 h-4 rounded-full bg-gray-700 text-white flex items-center justify-center"

@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useStore } from '@/store/useStore'
 
-import ReactFlow, { Background, Controls, BackgroundVariant, ReactFlowProvider, useReactFlow } from 'reactflow'
+import ReactFlow, { Background, Controls, BackgroundVariant, ReactFlowProvider, useReactFlow, SelectionMode } from 'reactflow'
 import 'reactflow/dist/style.css'
 import { Timeline } from '@/components/canvas/Timeline'
 import { TopBar } from '@/components/canvas/TopBar'
@@ -74,6 +74,7 @@ function FlowPlanEditor({ projectId }: { projectId: string }) {
 
     if (error || !data) {
       console.error('Failed to load project:', error)
+      setLoading(false)
       router.push('/dashboard')
       return
     }
@@ -105,9 +106,9 @@ function FlowPlanEditor({ projectId }: { projectId: string }) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
         e.preventDefault();
         if (e.shiftKey) {
-          useStore.temporal.getState().redo()
+          useStore.getState().redo()
         } else {
-          useStore.temporal.getState().undo()
+          useStore.getState().undo()
         }
       }
     }
@@ -210,9 +211,9 @@ function FlowPlanEditor({ projectId }: { projectId: string }) {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
-          onNodeDragStart={() => useStore.temporal.getState().pause()}
+          onNodeDragStart={() => undefined}
           onNodeDragStop={() => {
-            useStore.temporal.getState().resume();
+            useStore.getState().pushHistory();
             useStore.setState((s) => ({ ...s }));
           }}
           onDoubleClick={(e) => {
@@ -231,6 +232,12 @@ function FlowPlanEditor({ projectId }: { projectId: string }) {
           onMove={(_, vp) => setViewport(vp.x, vp.zoom)}
           proOptions={{ hideAttribution: true }}
           defaultEdgeOptions={{ type: 'custom' }}
+          panOnDrag={true}
+          selectionOnDrag={false}
+          selectionKeyCode="Shift"
+          panOnScroll={false}
+          zoomOnScroll={true}
+          selectionMode={SelectionMode.Partial}
         >
           {showGrid && (
             <Background

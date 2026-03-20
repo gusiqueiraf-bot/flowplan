@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { temporal } from 'zundo';
 import {
   Node, Edge, OnNodesChange, OnEdgesChange, Connection,
   addEdge, applyNodeChanges, applyEdgeChanges, MarkerType,
@@ -61,6 +60,12 @@ interface FlowPlanState {
   updateEdgeData: (id: string, data: Record<string, unknown>) => void;
   addTextNode: (data: Record<string, unknown>, position?: { x: number; y: number }) => void;
 
+  pastStates: string[];
+  futureStates: string[];
+  pushHistory: () => void;
+  undo: () => void;
+  redo: () => void;
+
   /** Updates node x-position so start date changes */
   setNodeStartDate: (nodeId: string, newDate: Date) => void;
   /** Updates duration and cascades downstream connected nodes */
@@ -88,9 +93,7 @@ interface FlowPlanState {
 
 const generateId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
-export const useStore = create<FlowPlanState>()(
-  temporal(
-    (set, get) => ({
+export const useStore = create<FlowPlanState>()((set, get) => ({
   creationMode: 'task',
   projectStartDate: new Date(),
   nodes: [],
@@ -106,12 +109,14 @@ export const useStore = create<FlowPlanState>()(
   viewportZoom: 1,
   isReadOnly: false,
 
-  onNodesChange: (changes) =>
-    set({ nodes: applyNodeChanges(changes, get().nodes) }),
-  onEdgesChange: (changes) =>
-    set({ edges: applyEdgeChanges(changes, get().edges) }),
+  pastStates: [],
+  futureStates: [],
 
-  onConnect: (connection) =>
+  onNodesChange: (changes) => set({ nodes: applyNodeChanges(changes, get().nodes) }),
+  onEdgesChange: (changes) => set({ edges: applyEdgeChanges(changes, get().edges) }),
+
+  onConnect: (connection) => {
+    get().pushHistory();
     set({
       edges: addEdge(
         {
@@ -124,11 +129,13 @@ export const useStore = create<FlowPlanState>()(
         },
         get().edges,
       ),
-    }),
+    })
+  },
 
-  setProjectStartDate: (date) => set({ projectStartDate: date }),
+  setProjectStartDate: (date) => { get().pushHistory(); set({ projectStartDate: date }); },
 
   addTask: (data, position) => {
+    get().pushHistory();
     const id = generateId('task');
     const x = position?.x ?? DAY_WIDTH * (get().nodes.length);
     const y = position?.y ?? (140 + ((get().nodes.length) % 6) * 100);
@@ -137,6 +144,7 @@ export const useStore = create<FlowPlanState>()(
   },
 
   addEvent: (data, position) => {
+    get().pushHistory();
     const id = generateId('event');
     const x = position?.x ?? DAY_WIDTH * (get().nodes.length);
     const y = position?.y ?? (140 + ((get().nodes.length) % 6) * 100);
@@ -144,36 +152,46 @@ export const useStore = create<FlowPlanState>()(
   },
 
   addTextNode: (data, position) => {
+    get().pushHistory();
     const id = generateId('text');
     const x = position?.x ?? DAY_WIDTH * (get().nodes.length);
     const y = position?.y ?? (140 + ((get().nodes.length) % 6) * 100);
     set({ nodes: [...get().nodes, { id, type: 'textNode', position: { x, y }, data }] });
   },
 
-  updateNodeData: (id, data) =>
+  updateNodeData: (id, data) => {
+    get().pushHistory();
     set({
       nodes: get().nodes.map((n) =>
         n.id === id ? { ...n, data: { ...n.data, ...data } } : n,
       ),
-    }),
+    })
+  },
 
-  removeNode: (id) =>
+  removeNode: (id) => {
+    get().pushHistory();
     set({
       nodes: get().nodes.filter((n) => n.id !== id),
       edges: get().edges.filter((e) => e.source !== id && e.target !== id),
-    }),
+    })
+  },
 
-  removeEdge: (id) =>
-    set({ edges: get().edges.filter((e) => e.id !== id) }),
+  removeEdge: (id) => {
+    get().pushHistory();
+    set({ edges: get().edges.filter((e) => e.id !== id) })
+  },
 
-  updateEdgeData: (id, data) =>
+  updateEdgeData: (id, data) => {
+    get().pushHistory();
     set({
       edges: get().edges.map((e) =>
         e.id === id ? { ...e, data: { ...e.data, ...data } } : e,
       ),
-    }),
+    })
+  },
 
   setNodeStartDate: (nodeId, newDate) => {
+    get().pushHistory();
     const { nodes, projectStartDate } = get();
     const dayOffset = differenceInCalendarDays(newDate, projectStartDate);
     const newX = Math.max(0, dayOffset * DAY_WIDTH);
@@ -217,9 +235,12 @@ export const useStore = create<FlowPlanState>()(
   setIsCreatingTask: (v) => set({ isCreatingTask: v }),
   setCreationMode: (mode) => set({ creationMode: mode }),
 
-  addStage: (stage) =>
-    set({ stages: [...get().stages, stage] }),
+  addStage: (stage) => {
+    get().pushHistory();
+    set({ stages: [...get().stages, stage] })
+  },
   updateStage: (id, updates) => {
+    get().pushHistory();
     const oldStage = get().stages.find((s) => s.id === id);
     set({
       stages: get().stages.map((s) => (s.id === id ? { ...s, ...updates } : s)),
@@ -232,6 +253,7 @@ export const useStore = create<FlowPlanState>()(
     });
   },
   removeStage: (id) => {
+    get().pushHistory();
     const stageObj = get().stages.find((s) => s.id === id);
     set({
       stages: get().stages.filter((s) => s.id !== id),
@@ -241,22 +263,94 @@ export const useStore = create<FlowPlanState>()(
     });
   },
 
-  addPerson: (person) =>
-    set({ people: [...get().people, person] }),
-  updatePerson: (id, updates) =>
-    set({ people: get().people.map((p) => (p.id === id ? { ...p, ...updates } : p)) }),
-  removePerson: (id) =>
+  addPerson: (person) => {
+    get().pushHistory();
+    set({ people: [...get().people, person] })
+  },
+  updatePerson: (id, updates) => {
+    get().pushHistory();
+    set({ people: get().people.map((p) => (p.id === id ? { ...p, ...updates } : p)) })
+  },
+  removePerson: (id) => {
+    get().pushHistory();
     set({
       people: get().people.filter((p) => p.id !== id),
-      nodes: get().nodes.map((n) =>
-        n.data.responsibleId === id ? { ...n, data: { ...n.data, responsibleId: undefined } } : n
-      ),
-    }),
+      nodes: get().nodes.map((n) => {
+        const currentAssignees = (n.data as any).assigneeIds as string[] | undefined;
+        if (currentAssignees?.includes(id)) {
+          return { ...n, data: { ...n.data, assigneeIds: currentAssignees.filter(a => a !== id) } };
+        }
+        return n;
+      }),
+    });
+  },
 
   setViewport: (x, zoom) => set({ viewportX: x, viewportZoom: zoom }),
-  setShowWeekends: (show) => set({ showWeekends: show }),
-  setShowGrid: (show) => set({ showGrid: show }),
-  setColorMode: (mode) => set({ colorMode: mode }),
+  setShowWeekends: (show) => { get().pushHistory(); set({ showWeekends: show }) },
+  setShowGrid: (show) => { get().pushHistory(); set({ showGrid: show }) },
+  setColorMode: (mode) => { get().pushHistory(); set({ colorMode: mode }) },
   setIsReadOnly: (ro) => set({ isReadOnly: ro }),
   setState: (state) => set(state),
-}), { partialize: (state) => ({ nodes: state.nodes, edges: state.edges }) }));
+
+  pushHistory: () => {
+    const state = get();
+    // Only save the core project data
+    const snapshot = JSON.stringify({
+      nodes: state.nodes,
+      edges: state.edges,
+      stages: state.stages,
+      people: state.people,
+      projectStartDate: state.projectStartDate,
+      showWeekends: state.showWeekends,
+      colorMode: state.colorMode
+    });
+    
+    // Prevent duplicate adjacent states
+    if (state.pastStates.length > 0 && state.pastStates[state.pastStates.length - 1] === snapshot) return;
+
+    set({
+      pastStates: [...state.pastStates, snapshot].slice(-50), // keep last 50
+      futureStates: [] // clear redo queue
+    });
+  },
+
+  undo: () => {
+    const state = get();
+    if (state.pastStates.length === 0) return;
+    
+    const previousStateStr = state.pastStates[state.pastStates.length - 1];
+    const previousState = JSON.parse(previousStateStr);
+    
+    const currentStateSnapshot = JSON.stringify({
+      nodes: state.nodes, edges: state.edges, stages: state.stages, people: state.people,
+      projectStartDate: state.projectStartDate, showWeekends: state.showWeekends, colorMode: state.colorMode
+    });
+
+    set({
+      ...previousState,
+      projectStartDate: new Date(previousState.projectStartDate), // revive date
+      pastStates: state.pastStates.slice(0, -1),
+      futureStates: [currentStateSnapshot, ...state.futureStates]
+    });
+  },
+
+  redo: () => {
+    const state = get();
+    if (state.futureStates.length === 0) return;
+    
+    const nextStateStr = state.futureStates[0];
+    const nextState = JSON.parse(nextStateStr);
+    
+    const currentStateSnapshot = JSON.stringify({
+      nodes: state.nodes, edges: state.edges, stages: state.stages, people: state.people,
+      projectStartDate: state.projectStartDate, showWeekends: state.showWeekends, colorMode: state.colorMode
+    });
+
+    set({
+      ...nextState,
+      projectStartDate: new Date(nextState.projectStartDate),
+      pastStates: [...state.pastStates, currentStateSnapshot],
+      futureStates: state.futureStates.slice(1)
+    });
+  }
+}));

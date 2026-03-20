@@ -33,9 +33,10 @@ export interface TaskNodeData {
   title: string;
   duration: number;
   color: string;
-  responsibleId?: string;
+  assigneeIds?: string[];
   stage?: string;
   description?: string;
+  status?: string;
   height?: number;
 }
 
@@ -107,16 +108,15 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
   useEffect(() => setLocalDesc(data.description || ''),   [data.description]);
   useEffect(() => setLocalDuration(String(data.duration)), [data.duration]);
 
-  // ─── Color resolution ───────────────────────────────────────────────────
-  const person   = people.find((p) => p.id === data.responsibleId);
-  const stageObj = stages.find((s) => s.label === data.stage);
+  // ─── Color & Assignees resolution ───────────────────────────────────────────────────
+  const assignees = people.filter((p) => data.assigneeIds?.includes(p.id));
+  const stageObj  = stages.find((s) => s.label === data.stage);
 
   let accentColor = data.color || '#3B82F6';
-  if      (colorMode === 'stage'       && stageObj) accentColor = stageObj.color;
-  else if (colorMode === 'responsible' && person)   accentColor = person.color;
+  if      (colorMode === 'stage'       && stageObj)            accentColor = stageObj.color;
+  else if (colorMode === 'responsible' && assignees.length>0)  accentColor = assignees[0].color;
 
   const stageBadgeColor = stageObj?.color ?? '#9CA3AF';
-  const personColor     = person?.color   ?? '#9CA3AF';
 
   // ─── Dates ──────────────────────────────────────────────────────────────
   const dayOffset    = Math.round(xPos / DAY_WIDTH);
@@ -124,7 +124,7 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
   const endDate      = showWeekends
     ? addDays(startDate, data.duration)
     : addBusinessDays(startDate, data.duration);
-  const startDateStr = format(startDate, 'yyyy-MM-dd');
+  const startDateStr = !isNaN(startDate.getTime()) ? format(startDate, 'yyyy-MM-dd') : '';
 
   const calendarDays = differenceInCalendarDays(endDate, startDate);
   const calculatedWidth = Math.max((showWeekends ? data.duration : calendarDays) * DAY_WIDTH, DAY_WIDTH);
@@ -136,7 +136,6 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
       e.stopPropagation();
       e.preventDefault();
       setIsResizing(true);
-      useStore.temporal.getState().pause();
       const startX   = e.clientX;
       const startDur = data.duration;
       lastDurationRef.current = startDur;
@@ -151,7 +150,7 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
       };
       const onUp = () => {
         setIsResizing(false);
-        useStore.temporal.getState().resume();
+        useStore.getState().pushHistory();
         useStore.setState((s) => ({ ...s }));
         window.removeEventListener('mousemove', onMove);
         window.removeEventListener('mouseup', onUp);
@@ -166,7 +165,6 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
     (e: React.MouseEvent) => {
       e.stopPropagation();
       e.preventDefault();
-      useStore.temporal.getState().pause();
       const startY = e.clientY;
       const startHeight = data.height || (e.currentTarget.parentElement?.getBoundingClientRect().height ?? 150);
 
@@ -176,7 +174,7 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
         updateNodeData(id, { height: newHeight });
       };
       const onUp = () => {
-        useStore.temporal.getState().resume();
+        useStore.getState().pushHistory();
         useStore.setState((s) => ({ ...s }));
         window.removeEventListener('mousemove', onMove);
         window.removeEventListener('mouseup', onUp);
@@ -202,7 +200,12 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
     setEditingDuration(false);
   };
   const selectStage  = (label: string | undefined) => { updateNodeData(id, { stage: label }); setStagePickerRect(null); };
-  const selectPerson = (pid:   string | undefined) => { updateNodeData(id, { responsibleId: pid }); setPersonPickerRect(null); };
+  const togglePerson = (pid:   string) => { 
+    const current = data.assigneeIds || [];
+    const newAssignees = current.includes(pid) ? current.filter(id => id !== pid) : [...current, pid];
+    updateNodeData(id, { assigneeIds: newAssignees }); 
+  };
+  const clearPeople = () => { updateNodeData(id, { assigneeIds: [] }); setPersonPickerRect(null); };
 
   const commitNewStage = () => {
     if (newStageLabel.trim()) {
@@ -216,7 +219,7 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
     if (newPersonName.trim()) {
       const newId = `per-${Date.now()}`;
       addPerson({ id: newId, name: newPersonName.trim(), color: newPersonColor });
-      selectPerson(newId);
+      togglePerson(newId);
     }
     setNewPersonName(''); setAddingPerson(false);
   };
@@ -271,11 +274,25 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
         {/* LOD Constraints */}
         <div className={`flex flex-col h-full w-full ${zoom < 0.15 ? 'p-2 justify-center' : 'p-3 space-y-3'}`}>
 
-          {/* ── Row 1: Stage badge · Pencil ──────────────────────────────── */}
+          {/* ── Row 1: Stage badge · Status · Pencil ──────────────────────────────── */}
           <div className="flex items-center justify-between gap-2 min-w-0">
 
-              {/* Stage picker */}
-              <div className="relative flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                {/* Status Dot */}
+                {data.status && (
+                  <div 
+                    title={data.status}
+                    className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm"
+                    style={{
+                      backgroundColor: data.status === 'Concluído' ? '#10B981' : 
+                                      data.status === 'Em Andamento' ? '#3B82F6' : 
+                                      data.status === 'Atrasado' ? '#EF4444' : '#9CA3AF'
+                    }}
+                  />
+                )}
+
+                {/* Stage picker */}
+                <div className="relative min-w-0 flex-1 truncate">
                 <button
                   type="button"
                   onMouseDown={(e) => e.stopPropagation()}
@@ -376,6 +393,7 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
                 </div>
               </PopoverPortal>
             </div>
+          </div>
 
             {/* Right side actions */}
             {!isReadOnly && (
@@ -453,17 +471,28 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); if (!isReadOnly) setPersonPickerRect(e.currentTarget.getBoundingClientRect()); }}
-                className={`flex items-center gap-2 min-w-0 w-full transition-opacity ${!isReadOnly ? 'hover:opacity-75' : ''}`}
-                title={!isReadOnly ? "Clique para alterar responsável" : undefined}
+                className={`flex items-center gap-2 min-w-0 w-full transition-opacity pl-1 ${!isReadOnly ? 'hover:opacity-75' : ''}`}
+                title={!isReadOnly ? "Clique para adicionar/remover responsáveis" : undefined}
               >
-                <div
-                  className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-bold text-white shadow-sm"
-                  style={{ backgroundColor: personColor }}
-                >
-                  {person ? getInitials(person.name) : '?'}
-                </div>
+                {assignees.length > 0 ? (
+                  <div className="flex -space-x-2 shrink-0">
+                    {assignees.map(pObj => (
+                      <div
+                        key={pObj.id}
+                        className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold text-white shadow-sm ring-2 ring-white"
+                        style={{ backgroundColor: pObj.color }}
+                      >
+                        {getInitials(pObj.name)}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-[10px] font-bold text-white shadow-sm ring-2 ring-white bg-gray-300">
+                    ?
+                  </div>
+                )}
                 <span className="text-gray-500 dark:text-gray-400 truncate font-medium text-[calc(0.875rem*var(--text-scale))]">
-                  {person ? person.name : 'Sem responsável'}
+                  {assignees.length === 1 ? assignees[0].name : assignees.length > 1 ? `${assignees.length} responsáveis` : 'Sem responsáveis'}
                 </span>
               </button>
 
@@ -471,27 +500,30 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
                 <div className="min-w-[200px] rounded-xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-100 dark:border-gray-700 p-1.5 animate-in fade-in zoom-in duration-200">
                 {/* Existing people */}
                 <div className="space-y-0.5">
-                  {people.map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => selectPerson(data.responsibleId === p.id ? undefined : p.id)}
-                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-left transition-colors"
-                    >
-                      <div
-                        className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-[10px] font-bold text-white"
-                        style={{ backgroundColor: p.color }}
+                  {people.map((p) => {
+                    const isSelected = data.assigneeIds?.includes(p.id);
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => togglePerson(p.id)}
+                        className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-left transition-colors"
                       >
-                        {getInitials(p.name)}
-                      </div>
-                      <span className="text-xs font-semibold text-gray-700 dark:text-gray-200 flex-1 truncate">{p.name}</span>
-                      {data.responsibleId === p.id && <Check className="w-3.5 h-3.5 text-gray-400" />}
-                    </button>
-                  ))}
+                        <div
+                          className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-[10px] font-bold text-white"
+                          style={{ backgroundColor: p.color }}
+                        >
+                          {getInitials(p.name)}
+                        </div>
+                        <span className="text-xs font-semibold text-gray-700 dark:text-gray-200 flex-1 truncate">{p.name}</span>
+                        {isSelected && <Check className="w-3.5 h-3.5 text-gray-400" />}
+                      </button>
+                    )
+                  })}
                   <div className="h-px bg-gray-100 dark:bg-gray-700 my-0.5" />
                   <button
                     type="button"
-                    onClick={() => selectPerson(undefined)}
+                    onClick={clearPeople}
                     className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-left"
                   >
                     <div className="w-7 h-7 rounded-full border-2 border-dashed border-gray-300 shrink-0" />
@@ -577,12 +609,12 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
                 style={{ color: accentColor }}
                 title={!isReadOnly ? "Clique para mudar data de início" : undefined}
               >
-                {format(startDate, 'dd MMM', { locale: ptBR })}
+                {!isNaN(startDate.getTime()) ? format(startDate, 'dd MMM', { locale: ptBR }) : '--'}
               </button>
 
               <span className="text-gray-400 text-[calc(0.875rem*var(--text-scale))] shrink-0">→</span>
               <span className="font-medium text-gray-400 tabular-nums text-[calc(0.875rem*var(--text-scale))] shrink-0">
-                {format(endDate, 'dd MMM', { locale: ptBR })}
+                {!isNaN(endDate.getTime()) ? format(endDate, 'dd MMM', { locale: ptBR }) : '--'}
               </span>
             </div>
 

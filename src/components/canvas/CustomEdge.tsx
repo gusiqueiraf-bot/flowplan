@@ -36,6 +36,7 @@ function CustomEdgeComponent({
   const updateEdgeData = useStore((s) => s.updateEdgeData);
   const removeEdge = useStore((s) => s.removeEdge);
   const zoom = useStore((s) => s.viewportZoom);
+  const isReadOnly = useStore((s) => s.isReadOnly);
 
   // Inverse zoom scaling for text on edges
   const textScale = Math.max(1, 0.8 / zoom);
@@ -123,7 +124,7 @@ function CustomEdgeComponent({
               </div>
 
               {/* Botão de excluir TEXTO da Edge (somente se houver texto) */}
-              {data?.label && (
+              {data?.label && !isReadOnly && (
                 <button
                   onClick={(e) => { e.stopPropagation(); updateEdgeData(id, { label: undefined }); }}
                   className="w-5 h-5 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
@@ -136,17 +137,19 @@ function CustomEdgeComponent({
           )}
 
           {/* Delete ENTIRE Edge Button */}
-          <button
-            onClick={(e) => { e.stopPropagation(); removeEdge(id); }}
-            className={`flex items-center gap-1 px-3 py-1.5 absolute top-1/2 left-[calc(50%+40px)] -translate-y-1/2 rounded-full bg-red-500 hover:bg-red-600 text-white font-bold transition-all shadow-md pointer-events-auto ${
-              isHovered ? 'opacity-100 scale-100' : 'opacity-0 scale-90 pointer-events-none'
-            }`}
-            style={{ fontSize: `calc(12px * var(--text-scale))`, transformOrigin: 'left center' }}
-            title="Cortar conexão"
-          >
-            <X className="w-3.5 h-3.5" />
-            Apagar Linha
-          </button>
+          {!isReadOnly && (
+            <button
+              onClick={(e) => { e.stopPropagation(); removeEdge(id); }}
+              className={`flex items-center gap-1 px-3 py-1.5 absolute top-1/2 left-[calc(50%+40px)] -translate-y-1/2 rounded-full bg-red-500 hover:bg-red-600 text-white font-bold transition-all shadow-md pointer-events-auto ${
+                isHovered ? 'opacity-100 scale-100' : 'opacity-0 scale-90 pointer-events-none'
+              }`}
+              style={{ fontSize: `calc(12px * var(--text-scale))`, transformOrigin: 'left center' }}
+              title="Cortar conexão"
+            >
+              <X className="w-3.5 h-3.5" />
+              Apagar Linha
+            </button>
+          )}
         </div>
       </EdgeLabelRenderer>
     </>

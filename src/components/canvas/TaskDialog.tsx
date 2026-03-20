@@ -41,9 +41,10 @@ export function TaskDialog({ open, onOpenChange, nodeId }: Props) {
   const [title,         setTitle]         = useState('');
   const [duration,      setDuration]      = useState(3);
   const [stage,         setStage]         = useState<string | undefined>(undefined);
-  const [responsibleId, setResponsibleId] = useState<string | undefined>(undefined);
+  const [assigneeIds,   setAssigneeIds]   = useState<string[]>([]);
   const [color,         setColor]         = useState(PRESET_COLORS[0].value);
   const [description,   setDescription]   = useState('');
+  const [status,        setStatus]        = useState<string>('Previsto');
 
   // Populate form only when dialog opens
   useEffect(() => {
@@ -52,19 +53,21 @@ export function TaskDialog({ open, onOpenChange, nodeId }: Props) {
       setTitle((nodeData.title as string) || '');
       setDuration((nodeData.duration as number) || 3);
       setStage((nodeData.stage as string | undefined) || undefined);
-      setResponsibleId((nodeData.responsibleId as string | undefined) || undefined);
+      setAssigneeIds((nodeData.assigneeIds as string[]) || []);
       setColor((nodeData.color as string) || PRESET_COLORS[0].value);
       setDescription((nodeData.description as string) || '');
+      setStatus((nodeData.status as string) || 'Previsto');
     }
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, isEdit, nodeData]);
 
   const resetForm = () => {
     setTitle('');
     setDuration(3);
     setStage(undefined);
-    setResponsibleId(undefined);
+    setAssigneeIds([]);
     setColor(PRESET_COLORS[0].value);
     setDescription('');
+    setStatus('Previsto');
   };
 
   const handleSubmit = () => {
@@ -72,9 +75,10 @@ export function TaskDialog({ open, onOpenChange, nodeId }: Props) {
       title: title.trim() || 'Nova tarefa',
       duration: Math.max(1, duration),
       color,
-      responsibleId: responsibleId || undefined,
+      assigneeIds,
       stage: stage || undefined,
       description: description.trim() || undefined,
+      status,
       height: (nodeData?.height as number) || 180,
     };
 
@@ -170,15 +174,36 @@ export function TaskDialog({ open, onOpenChange, nodeId }: Props) {
             <StageSelector value={stage} onChange={setStage} />
           </div>
 
+          {/* Status */}
+          <div className="space-y-1.5 pt-2">
+            <Label className="text-xs font-medium">Status</Label>
+            <div className="flex gap-2">
+              {['Previsto', 'Em Andamento', 'Atrasado', 'Concluído'].map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setStatus(s)}
+                  className={`flex-1 py-1.5 text-[11px] font-semibold rounded-md border text-center transition-colors ${
+                    status === s 
+                      ? 'bg-blue-500 text-white border-blue-600 shadow-sm' 
+                      : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Responsible */}
           <div className="space-y-1.5">
             <Label className="text-xs font-medium">
-              Responsável{' '}
+              Responsáveis{' '}
               <span className="text-muted-foreground font-normal text-[10px]">
                 · duplo clique para editar · × para remover
               </span>
             </Label>
-            <PersonSelector value={responsibleId} onChange={setResponsibleId} />
+            <PersonSelector value={assigneeIds} onChange={setAssigneeIds} />
           </div>
 
           {/* Custom color */}

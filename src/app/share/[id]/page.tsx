@@ -94,6 +94,7 @@ function ShareViewer({ projectId }: { projectId: string }) {
           edges={edges}
           nodesDraggable={false}
           nodesConnectable={false}
+          elementsSelectable={false}
           panOnDrag={true}
           zoomOnScroll={true}
           zoomOnDoubleClick={false}

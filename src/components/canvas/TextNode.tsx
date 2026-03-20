@@ -40,9 +40,9 @@ function TextNodeComponent({ data, id, selected }: NodeProps<TextNodeData>) {
           isVisible={selected || isHovered} 
           minWidth={100} 
           minHeight={40} 
-          onResizeStart={() => useStore.temporal.getState().pause()}
+          onResizeStart={() => undefined}
           onResizeEnd={() => {
-            useStore.temporal.getState().resume();
+            useStore.getState().pushHistory();
             useStore.setState((s) => ({ ...s }));
           }}
           onResize={(_, params) => {
