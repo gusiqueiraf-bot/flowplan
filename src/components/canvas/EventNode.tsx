@@ -6,12 +6,17 @@ import { ptBR } from 'date-fns/locale';
 import { DAY_WIDTH } from '@/lib/constants';
 import { Check, X } from 'lucide-react';
 
+function getInitials(name: string) {
+  return name.split(' ').slice(0, 2).map((n) => n[0]).join('').toUpperCase();
+}
+
 export interface EventNodeData {
   title: string;
   color?: string;
   scale?: number;
   width?: number;
   height?: number;
+  responsibleId?: string;
 }
 
 const EVENT_COLORS = [
@@ -31,6 +36,9 @@ function EventNodeComponent({ data, xPos, id, selected }: NodeProps<EventNodeDat
   const removeNode       = useStore((s) => s.removeNode);
   const zoom             = useStore((s) => s.viewportZoom);
   const isReadOnly       = useStore((s) => s.isReadOnly);
+  const people           = useStore((s) => s.people);
+
+  const person = people.find((p) => p.id === data.responsibleId);
 
   const textScale = Math.min(2.5, Math.max(0.8, 1 / Math.pow(zoom, 0.5)));
   const btnScale = Math.max(1, 0.8 / zoom);
@@ -71,6 +79,7 @@ function EventNodeComponent({ data, xPos, id, selected }: NodeProps<EventNodeDat
           isVisible={selected || isHovered}
           minWidth={40}
           minHeight={40}
+          handleStyle={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid white' }}
           onResizeStart={() => useStore.temporal.getState().pause()}
           onResizeEnd={() => {
             useStore.temporal.getState().resume();
@@ -93,14 +102,14 @@ function EventNodeComponent({ data, xPos, id, selected }: NodeProps<EventNodeDat
         <Handle
           type="target"
           position={Position.Left}
-          className={`!w-3.5 !h-3.5 !border-2 !bg-white ${isReadOnly ? 'opacity-0 !pointer-events-none' : ''}`}
+          className={`!w-4 !h-4 !border-2 !bg-white !z-50 before:absolute before:-inset-4 before:content-[''] ${isReadOnly ? 'opacity-0 !pointer-events-none' : ''}`}
           style={{ borderColor: color, top: '40%' }}
           title="Entrada de dependência"
         />
         <Handle
           type="source"
           position={Position.Right}
-          className={`!w-3.5 !h-3.5 !border-2 !bg-white ${isReadOnly ? 'opacity-0 !pointer-events-none' : ''}`}
+          className={`!w-4 !h-4 !border-2 !bg-white !z-50 before:absolute before:-inset-4 before:content-[''] ${isReadOnly ? 'opacity-0 !pointer-events-none' : ''}`}
           style={{ borderColor: color, top: '40%' }}
           title="Arraste para conectar"
         />
@@ -108,6 +117,23 @@ function EventNodeComponent({ data, xPos, id, selected }: NodeProps<EventNodeDat
 
       {/* Diamond + color picker container styled with exact diagonal height to push text down correctly */}
       <div className="relative flex items-center justify-center" style={{ width: 62 * nodeScale, height: 62 * nodeScale }}>
+        
+        {/* Responsible Badge */}
+        {person && (
+          <div
+            className="absolute -top-3 -right-3 flex items-center justify-center rounded-full text-white font-bold shadow-sm z-20"
+            style={{
+              backgroundColor: person.color,
+              width: 22 * btnScale,
+              height: 22 * btnScale,
+              fontSize: 10 * btnScale,
+            }}
+            title={`Responsável: ${person.name}`}
+          >
+            {getInitials(person.name)}
+          </div>
+        )}
+
         <button
           type="button"
           onMouseDown={(e) => e.stopPropagation()}
@@ -164,12 +190,13 @@ function EventNodeComponent({ data, xPos, id, selected }: NodeProps<EventNodeDat
           onChange={(e) => setLocalTitle(e.target.value)}
           onBlur={commitTitle}
           onKeyDown={(e) => {
+            e.stopPropagation();
             if (e.key === 'Enter')  commitTitle();
             if (e.key === 'Escape') { setLocalTitle(data.title); setEditingTitle(false); }
           }}
           onMouseDown={(e) => e.stopPropagation()}
-          className="mt-2 font-bold text-center rounded-lg px-2 py-1 border outline-none bg-white text-[calc(0.75rem*var(--text-scale)*var(--node-scale))]"
-          style={{ color, borderColor: `${color}66`, minWidth: 100 }}
+          className="nodrag mt-2 font-bold text-center rounded-lg px-2 py-1 border outline-none bg-white text-gray-900 border-gray-200 focus:border-blue-500 w-auto"
+          style={{ color, borderColor: `${color}66`, minWidth: 100, fontSize: `calc(0.75rem * ${textScale} * ${nodeScale})` }}
         />
       ) : (
         <p

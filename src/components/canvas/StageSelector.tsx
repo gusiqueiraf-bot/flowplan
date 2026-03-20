@@ -37,7 +37,9 @@ export function StageSelector({ value, onChange }: Props) {
 
   const commitNew = () => {
     if (newLabel.trim()) {
-      addStage({ label: newLabel.trim(), color: newColor });
+      const newId = `stage-${Date.now()}`;
+      addStage({ id: newId, label: newLabel.trim(), color: newColor });
+      onChange(newLabel.trim());
     }
     setNewLabel('');
     setAdding(false);

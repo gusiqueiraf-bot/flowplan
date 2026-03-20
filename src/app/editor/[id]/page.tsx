@@ -120,25 +120,33 @@ function FlowPlanEditor({ projectId }: { projectId: string }) {
     
     const saveState = async () => {
       setSaving(true)
-      await supabase
-        .from('projects')
-        .update({
-          content: {
-            nodes,
-            edges,
-            viewportZoom,
-            viewportX,
-            stages,
-            people,
-            projectStartDate: projectStartDate.toISOString(),
-            showWeekends,
-            showGrid,
-            colorMode,
-          }
-        })
-        .eq('id', projectId);
-      
-      setTimeout(() => setSaving(false), 500)
+      try {
+        const { error } = await supabase
+          .from('projects')
+          .update({
+            content: {
+              nodes,
+              edges,
+              viewportZoom,
+              viewportX,
+              stages,
+              people,
+              projectStartDate: projectStartDate.toISOString(),
+              showWeekends,
+              showGrid,
+              colorMode,
+            }
+          })
+          .eq('id', projectId);
+        
+        if (error) {
+          console.error("SUPABASE SAVE ERROR:", error);
+        }
+      } catch (err) {
+        console.error("CATCH SAVE ERROR:", err);
+      } finally {
+        setTimeout(() => setSaving(false), 500)
+      }
     }
 
     const timeoutId = setTimeout(saveState, 2000)

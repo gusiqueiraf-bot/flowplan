@@ -233,32 +233,41 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
         '--desc-scale': descScale
       } as React.CSSProperties}
     >
+      <Handle
+        type="target"
+        position={Position.Left}
+        className={`!w-4 !h-4 !bg-white !border-2 !-left-3 !z-50 transition-transform before:absolute before:-inset-4 before:content-[''] ${!isReadOnly ? 'hover:scale-125' : 'opacity-0 !pointer-events-none'}`}
+        style={{ borderColor: accentColor, top: '50%' }}
+        title="Entrada de dependência"
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        className={`!w-4 !h-4 !bg-white !border-2 !-right-3 !z-50 transition-transform before:absolute before:-inset-4 before:content-[''] ${!isReadOnly ? 'hover:scale-125 hover:bg-gray-50 cursor-crosshair' : 'opacity-0 !pointer-events-none'}`}
+        style={{ borderColor: accentColor, top: '50%' }}
+        title="Arraste para conectar com outro card"
+      />
 
       {/* ── Card ─────────────────────────────────────────────────────────── */}
       <div
-        className="absolute top-0 left-0 w-full min-h-[100%] min-w-[100%] group-hover/card:min-w-[320px] group-hover/card:w-max rounded-xl bg-white overflow-visible select-none transition-all duration-300 flex flex-col z-10 group-hover/card:z-50 group-hover/card:drop-shadow-2xl"
+        className="absolute top-0 left-0 w-full min-h-[100%] min-w-[100%] group-hover/card:min-w-[280px] rounded-xl bg-white overflow-visible select-none transition-all duration-200 flex flex-col z-10 group-hover/card:z-40"
         style={{
           borderLeft: `5px solid ${accentColor}`,
           boxShadow: isResizing
             ? `0 8px 30px 0 ${accentColor}44, 0 0 0 2px ${accentColor}66`
             : '0 2px 14px 0 rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.04)',
+          transformOrigin: 'top left',
+        }}
+        onMouseEnter={(e) => {
+          // Bring node to front to prevent stacking context jitter
+          const node = (e.target as HTMLElement).closest('.react-flow__node') as HTMLElement;
+          if (node) node.style.zIndex = '1000';
+        }}
+        onMouseLeave={(e) => {
+          const node = (e.target as HTMLElement).closest('.react-flow__node') as HTMLElement;
+          if (node) node.style.zIndex = '';
         }}
       >
-          <Handle
-            type="target"
-            position={Position.Left}
-            className={`!w-3.5 !h-3.5 !bg-white !border-2 !-left-2.5 transition-transform ${!isReadOnly ? 'hover:scale-125' : 'opacity-0 !pointer-events-none'}`}
-            style={{ borderColor: accentColor, top: '50%' }}
-            title="Entrada de dependência"
-          />
-          <Handle
-            type="source"
-            position={Position.Right}
-            className={`!w-4 !h-4 !bg-white !border-2 !-right-5 transition-transform ${!isReadOnly ? 'hover:scale-125 hover:bg-gray-50 cursor-crosshair' : 'opacity-0 !pointer-events-none'}`}
-            style={{ borderColor: accentColor, top: '50%' }}
-            title="Arraste para conectar com outro card"
-          />
-
         {/* LOD Constraints */}
         <div className={`flex flex-col h-full w-full ${zoom < 0.15 ? 'p-2 justify-center' : 'p-3 space-y-3'}`}>
 
@@ -314,11 +323,12 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
                         value={newStageLabel}
                         onChange={(e) => setNewStageLabel(e.target.value)}
                         onKeyDown={(e) => {
+                          e.stopPropagation();
                           if (e.key === 'Enter')  commitNewStage();
                           if (e.key === 'Escape') { setAddingStage(false); setNewStageLabel(''); }
                         }}
                         placeholder="Nome da etapa..."
-                        className="w-full text-xs rounded-lg border border-gray-200 bg-gray-50 dark:bg-gray-800 dark:border-gray-700 px-2 py-1.5 outline-none"
+                        className="nodrag w-full text-xs rounded-lg border border-gray-200 bg-white text-gray-900 px-2 py-1.5 outline-none focus:border-blue-500"
                       />
                       <div className="flex gap-1.5 flex-wrap">
                         {PALETTE.map((c) => (
@@ -418,11 +428,12 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
               onChange={(e) => setLocalTitle(e.target.value)}
               onBlur={commitTitle}
               onKeyDown={(e) => {
+                e.stopPropagation();
                 if (e.key === 'Enter')  commitTitle();
                 if (e.key === 'Escape') { setLocalTitle(data.title); setEditingTitle(false); }
               }}
               onMouseDown={(e) => e.stopPropagation()}
-              className="w-full font-black rounded-lg px-2 py-1 outline-none border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 leading-tight text-[calc(1.75rem*var(--text-scale))]"
+              className="nodrag w-full font-black rounded-lg px-2 py-1 outline-none border border-gray-200 bg-white text-gray-900 focus:border-blue-500 leading-tight text-[calc(1.75rem*var(--text-scale))]"
               style={{ color: accentColor }}
             />
           ) : (
@@ -497,11 +508,12 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
                       value={newPersonName}
                       onChange={(e) => setNewPersonName(e.target.value)}
                       onKeyDown={(e) => {
+                        e.stopPropagation();
                         if (e.key === 'Enter')  commitNewPerson();
                         if (e.key === 'Escape') { setAddingPerson(false); setNewPersonName(''); }
                       }}
                       placeholder="Nome da pessoa..."
-                      className="w-full text-xs rounded-lg border border-gray-200 bg-gray-50 dark:bg-gray-800 dark:border-gray-700 px-2 py-1.5 outline-none"
+                      className="nodrag w-full text-xs rounded-lg border border-gray-200 bg-white text-gray-900 px-2 py-1.5 outline-none focus:border-blue-500"
                     />
                     <div className="flex gap-1.5 flex-wrap">
                       {PALETTE.map((c) => (
@@ -585,11 +597,12 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
                   onChange={(e) => setLocalDuration(e.target.value)}
                   onBlur={commitDuration}
                   onKeyDown={(e) => {
+                    e.stopPropagation();
                     if (e.key === 'Enter')  commitDuration();
                     if (e.key === 'Escape') setEditingDuration(false);
                   }}
                   onMouseDown={(e) => e.stopPropagation()}
-                  className="w-16 font-mono font-bold text-center rounded-md border border-gray-200 bg-gray-50 dark:bg-gray-800 outline-none px-1 py-0.5 text-[calc(0.875rem*var(--text-scale))]"
+                  className="nodrag w-16 font-mono font-bold text-center rounded-md border border-gray-200 bg-white text-gray-900 focus:border-blue-500 outline-none px-1 py-0.5 text-[calc(0.875rem*var(--text-scale))]"
                   style={{ color: accentColor }}
                 />
               ) : (
@@ -638,11 +651,12 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
                   onChange={(e) => setLocalDesc(e.target.value)}
                   onBlur={commitDesc}
                   onKeyDown={(e) => {
+                    e.stopPropagation();
                     if (e.key === 'Escape') { setLocalDesc(data.description || ''); setEditingDesc(false); }
                     if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); commitDesc(); }
                   }}
                   onMouseDown={(e) => e.stopPropagation()}
-                  className="w-full flex-1 min-h-[40px] resize-none rounded-lg px-2 py-1 outline-none border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 text-[calc(0.75rem*var(--text-scale))] leading-snug"
+                  className="nodrag w-full flex-1 min-h-[40px] resize-none rounded-lg px-2 py-1 outline-none border border-gray-200 bg-white text-gray-900 focus:border-blue-500 text-[calc(0.75rem*var(--text-scale))] leading-snug"
                   placeholder="Insira a descrição..."
                 />
               ) : (
@@ -669,11 +683,11 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
         {/* Bottom Resize Handle */}
         {!isReadOnly && (
           <div
-            className="nodrag absolute bottom-0 left-0 w-full h-[6px] cursor-ns-resize hover:bg-gray-200/50 dark:hover:bg-gray-700/50 transition-colors z-20 flex justify-center items-center"
+            className="nodrag absolute bottom-0 left-0 w-full h-[12px] -mb-[6px] cursor-ns-resize hover:bg-gray-200/50 transition-colors z-20 flex justify-center items-center"
             onMouseDown={handleVerticalResizeMouseDown}
             title="Arraste para ajustar a altura"
           >
-            <div className="w-8 h-1 rounded-full bg-gray-200 dark:bg-gray-700 opacity-0 group-hover/card:opacity-100 transition-opacity" />
+            <div className="w-8 h-1.5 rounded-full bg-gray-300 opacity-0 group-hover/card:opacity-100 transition-opacity" />
           </div>
         )}
 
@@ -692,12 +706,12 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
         {/* ── Resize strip — Horizontal width duration resize ── */}
         {!isReadOnly && (
           <div
-            className="nodrag absolute top-0 right-0 h-full w-4 cursor-ew-resize z-20 rounded-r-xl flex items-center justify-center opacity-0 group-hover/card:opacity-100"
+            className="nodrag absolute top-0 right-0 h-full w-[16px] -mr-[8px] cursor-ew-resize z-20 flex items-center justify-center opacity-0 group-hover/card:opacity-100"
             onMouseDown={handleResizeMouseDown}
             title="Arraste para alterar a duração"
           >
             <div
-              className={`w-1 rounded-full transition-all duration-150 ${
+              className={`w-1.5 rounded-full transition-all duration-150 ${
                 isResizing ? 'opacity-90' : 'opacity-20 group-hover/card:opacity-70'
               }`}
               style={{

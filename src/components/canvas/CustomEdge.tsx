@@ -99,40 +99,53 @@ function CustomEdgeComponent({
               onChange={(e) => setLocalLabel(e.target.value)}
               onBlur={commitLabel}
               onKeyDown={(e) => {
+                e.stopPropagation();
                 if (e.key === 'Enter') commitLabel();
                 if (e.key === 'Escape') {
                   setLocalLabel(data?.label || '');
                   setIsEditing(false);
                 }
               }}
-              className="text-center rounded outline-none border border-gray-300 bg-white text-gray-800 px-1 py-0.5 pointer-events-auto text-[calc(0.75rem*var(--text-scale))] shadow-lg z-50 min-w-[60px]"
+              className="nodrag text-center rounded outline-none border border-gray-300 bg-white text-gray-800 px-2 py-1 pointer-events-auto shadow-lg z-50 min-w-[80px]"
+              style={{ fontSize: `calc(14px * var(--text-scale))` }}
             />
           ) : (
-            <div
-              className={`relative px-2 py-0.5 rounded-md cursor-pointer transition-opacity text-[calc(0.75rem*var(--text-scale))] font-medium ${
-                data?.label || isHovered
-                  ? 'bg-white text-gray-800 hover:text-black shadow-sm border border-gray-200'
-                  : 'opacity-0'
-              }`}
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsEditing(true);
-              }}
-            >
-              {data?.label || (isHovered && 'Adicionar texto')}
+            <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm pointer-events-auto">
+              <div
+                className="relative cursor-text font-semibold text-gray-800 hover:text-black transition-colors"
+                style={{ fontSize: `calc(14px * var(--text-scale))` }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsEditing(true);
+                }}
+              >
+                {data?.label || <span className="text-gray-400 italic font-normal">Insira texto...</span>}
+              </div>
+
+              {/* Botão de excluir TEXTO da Edge (somente se houver texto) */}
+              {data?.label && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); updateEdgeData(id, { label: undefined }); }}
+                  className="w-5 h-5 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                  title="Limpar texto da linha"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           )}
 
-          {/* Delete Edge Button */}
+          {/* Delete ENTIRE Edge Button */}
           <button
-            onClick={() => removeEdge(id)}
-            className={`w-5 h-5 rounded-full bg-red-100 hover:bg-red-500 text-red-500 hover:text-white flex items-center justify-center transition-all shadow border border-red-200 absolute -right-6 z-10 ${
-              isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            onClick={(e) => { e.stopPropagation(); removeEdge(id); }}
+            className={`flex items-center gap-1 px-3 py-1.5 absolute top-1/2 left-[calc(50%+40px)] -translate-y-1/2 rounded-full bg-red-500 hover:bg-red-600 text-white font-bold transition-all shadow-md pointer-events-auto ${
+              isHovered ? 'opacity-100 scale-100' : 'opacity-0 scale-90 pointer-events-none'
             }`}
-            style={{ transform: `scale(${btnScale})`, transformOrigin: 'center left' }}
-            title="Remover conexão"
+            style={{ fontSize: `calc(12px * var(--text-scale))`, transformOrigin: 'left center' }}
+            title="Cortar conexão"
           >
-            <X className="w-3 h-3" />
+            <X className="w-3.5 h-3.5" />
+            Apagar Linha
           </button>
         </div>
       </EdgeLabelRenderer>

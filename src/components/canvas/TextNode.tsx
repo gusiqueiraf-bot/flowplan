@@ -66,14 +66,16 @@ function TextNodeComponent({ data, id, selected }: NodeProps<TextNodeData>) {
         {isEditing ? (
           <textarea
             autoFocus
-            className="w-full h-full resize-none outline-none bg-transparent text-center text-gray-800"
+            className="nodrag w-full h-full resize-none outline-none bg-transparent text-center text-gray-800"
             value={localText}
             onChange={(e) => setLocalText(e.target.value)}
             onBlur={commitText}
             onKeyDown={(e) => {
+              e.stopPropagation();
               if (e.key === 'Escape') { setLocalText(data.text); setIsEditing(false); }
               if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { commitText(); }
             }}
+            onMouseDown={(e) => e.stopPropagation()}
             placeholder="Digite seu texto..."
           />
         ) : (

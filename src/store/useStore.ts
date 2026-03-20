@@ -86,7 +86,7 @@ interface FlowPlanState {
   setState: (state: Partial<FlowPlanState>) => void;
 }
 
-let nodeCounter = 0;
+const generateId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
 export const useStore = create<FlowPlanState>()(
   temporal(
@@ -129,24 +129,24 @@ export const useStore = create<FlowPlanState>()(
   setProjectStartDate: (date) => set({ projectStartDate: date }),
 
   addTask: (data, position) => {
-    const id = `task-${++nodeCounter}`;
-    const x = position?.x ?? DAY_WIDTH * (nodeCounter - 1);
-    const y = position?.y ?? (140 + ((nodeCounter - 1) % 6) * 100);
+    const id = generateId('task');
+    const x = position?.x ?? DAY_WIDTH * (get().nodes.length);
+    const y = position?.y ?? (140 + ((get().nodes.length) % 6) * 100);
     const finalData = { height: 180, ...data };
     set({ nodes: [...get().nodes, { id, type: 'taskNode', position: { x, y }, data: finalData }] });
   },
 
   addEvent: (data, position) => {
-    const id = `event-${++nodeCounter}`;
-    const x = position?.x ?? DAY_WIDTH * (nodeCounter - 1);
-    const y = position?.y ?? (140 + ((nodeCounter - 1) % 6) * 100);
+    const id = generateId('event');
+    const x = position?.x ?? DAY_WIDTH * (get().nodes.length);
+    const y = position?.y ?? (140 + ((get().nodes.length) % 6) * 100);
     set({ nodes: [...get().nodes, { id, type: 'eventNode', position: { x, y }, data }] });
   },
 
   addTextNode: (data, position) => {
-    const id = `text-${++nodeCounter}`;
-    const x = position?.x ?? DAY_WIDTH * (nodeCounter - 1);
-    const y = position?.y ?? (140 + ((nodeCounter - 1) % 6) * 100);
+    const id = generateId('text');
+    const x = position?.x ?? DAY_WIDTH * (get().nodes.length);
+    const y = position?.y ?? (140 + ((get().nodes.length) % 6) * 100);
     set({ nodes: [...get().nodes, { id, type: 'textNode', position: { x, y }, data }] });
   },
 
@@ -219,17 +219,39 @@ export const useStore = create<FlowPlanState>()(
 
   addStage: (stage) =>
     set({ stages: [...get().stages, stage] }),
-  updateStage: (id, updates) =>
-    set({ stages: get().stages.map((s) => (s.id === id ? { ...s, ...updates } : s)) }),
-  removeStage: (id) =>
-    set({ stages: get().stages.filter((s) => s.id !== id) }),
+  updateStage: (id, updates) => {
+    const oldStage = get().stages.find((s) => s.id === id);
+    set({
+      stages: get().stages.map((s) => (s.id === id ? { ...s, ...updates } : s)),
+      nodes: get().nodes.map((n) => {
+        if (oldStage && updates.label && n.data.stage === oldStage.label) {
+          return { ...n, data: { ...n.data, stage: updates.label } };
+        }
+        return n;
+      }),
+    });
+  },
+  removeStage: (id) => {
+    const stageObj = get().stages.find((s) => s.id === id);
+    set({
+      stages: get().stages.filter((s) => s.id !== id),
+      nodes: get().nodes.map((n) => 
+        stageObj && n.data.stage === stageObj.label ? { ...n, data: { ...n.data, stage: undefined } } : n
+      ),
+    });
+  },
 
   addPerson: (person) =>
     set({ people: [...get().people, person] }),
   updatePerson: (id, updates) =>
     set({ people: get().people.map((p) => (p.id === id ? { ...p, ...updates } : p)) }),
   removePerson: (id) =>
-    set({ people: get().people.filter((p) => p.id !== id) }),
+    set({
+      people: get().people.filter((p) => p.id !== id),
+      nodes: get().nodes.map((n) =>
+        n.data.responsibleId === id ? { ...n, data: { ...n.data, responsibleId: undefined } } : n
+      ),
+    }),
 
   setViewport: (x, zoom) => set({ viewportX: x, viewportZoom: zoom }),
   setShowWeekends: (show) => set({ showWeekends: show }),

@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { ArrowLeft, Plus, Diamond, Settings, Grid3x3, CalendarOff, Palette, ChevronDown, Type, Share } from 'lucide-react';
+import { ArrowLeft, Plus, Diamond, Settings, Grid3x3, CalendarOff, Palette, ChevronDown, Type, Share, Copy } from 'lucide-react';
 import { useStore, type ColorMode } from '@/store/useStore';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -29,6 +30,48 @@ export function TopBar() {
   const setColorMode = useStore((s) => s.setColorMode);
   const projectStartDate = useStore((s) => s.projectStartDate);
   const setProjectStartDate = useStore((s) => s.setProjectStartDate);
+
+  const handleSaveAsTemplate = async () => {
+    if (!params?.id) return;
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // Fetch snapshot of entire state synchronously
+    const state = useStore.getState();
+    const content = {
+      nodes: state.nodes,
+      edges: state.edges,
+      viewportZoom: state.viewportZoom,
+      viewportX: state.viewportX,
+      stages: state.stages,
+      people: state.people,
+      projectStartDate: state.projectStartDate.toISOString(),
+      showWeekends: state.showWeekends,
+      showGrid: state.showGrid,
+      colorMode: state.colorMode,
+    };
+
+    // Obter o nome do projeto atual
+    const { data: currData } = await supabase.from('projects').select('name').eq('id', params.id).single();
+    const templateName = prompt("Nome do novo Template:", currData ? `[Template] ${currData.name}` : "Novo Template");
+    
+    if (!templateName) return;
+
+    const { error } = await supabase.from('projects').insert([{
+      name: templateName,
+      user_id: user.id,
+      content,
+      is_template: true
+    }]);
+
+    if (error) {
+      console.error('Failed to save template', error);
+      alert('Erro ao salvar template.');
+    } else {
+      alert('Template salvo com sucesso! Você continuará editando o projeto original. O seu Template aparecerá na tela do Dashboard.');
+    }
+  };
 
   return (
     <div
@@ -111,6 +154,24 @@ export function TopBar() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-64">
+
+          {/* Save as Template */}
+          <DropdownMenuLabel className="text-[11px] font-semibold text-indigo-600 uppercase tracking-wider">
+            Ações
+          </DropdownMenuLabel>
+          <div className="px-1.5 py-1">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full text-xs justify-start gap-2 h-8 border-indigo-200 text-indigo-700 hover:bg-indigo-50 hover:text-indigo-800"
+              onClick={handleSaveAsTemplate}
+            >
+              <Copy className="w-3.5 h-3.5" />
+              Salvar como Template
+            </Button>
+          </div>
+
+          <DropdownMenuSeparator />
 
           {/* Project Start Date */}
           <DropdownMenuLabel className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">

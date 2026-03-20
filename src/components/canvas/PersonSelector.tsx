@@ -37,7 +37,11 @@ export function PersonSelector({ value, onChange }: Props) {
   useEffect(() => { if (editingId) editInputRef.current?.focus(); }, [editingId]);
 
   const commitNew = () => {
-    if (newName.trim()) addPerson({ name: newName.trim(), color: newColor });
+    if (newName.trim()) {
+      const newId = `per-${Date.now()}`;
+      addPerson({ id: newId, name: newName.trim(), color: newColor });
+      onChange(newId);
+    }
     setNewName('');
     setAdding(false);
   };
