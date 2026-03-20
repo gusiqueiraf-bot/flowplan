@@ -62,6 +62,7 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
   const setEditingNodeId    = useStore((s) => s.setEditingNodeId);
   const addStage            = useStore((s) => s.addStage);
   const addPerson           = useStore((s) => s.addPerson);
+  const isReadOnly          = useStore((s) => s.isReadOnly);
 
   const zoomRef = useRef(zoom);
   zoomRef.current = zoom;
@@ -70,6 +71,10 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
   // Explicação: 1 / sqrt(zoom). Se zoom = 0.25 (1/4), sqrt(0.25) = 0.5. 1 / 0.5 = 2.0x escopo texto.
   const textScale = Math.min(2.5, Math.max(0.8, 1 / Math.pow(zoom, 0.5)));
   const btnScale = Math.max(1, 0.8 / zoom);
+
+  const isShort = data.duration <= 2;
+  const titleScale = isShort ? textScale * 0.8 : textScale;
+  const descScale = isShort ? textScale * 0.9 : textScale;
 
   // ─── Editing state ─────────────────────────────────────────────────────
   const [editingTitle,     setEditingTitle]    = useState(false);
@@ -122,7 +127,8 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
   const startDateStr = format(startDate, 'yyyy-MM-dd');
 
   const calendarDays = differenceInCalendarDays(endDate, startDate);
-  const width = Math.max((showWeekends ? data.duration : calendarDays) * DAY_WIDTH, DAY_WIDTH);
+  const calculatedWidth = Math.max((showWeekends ? data.duration : calendarDays) * DAY_WIDTH, DAY_WIDTH);
+  const width = Math.max(calculatedWidth, 150);
 
   // ─── Resize (nodrag tells ReactFlow to skip its drag on this element) ───
   const handleResizeMouseDown = useCallback(
@@ -217,38 +223,44 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
       className="relative group/card" 
       style={{ 
         width,
-        '--text-scale': textScale
+        minHeight: data.height ? `${data.height}px` : '180px',
+        '--text-scale': textScale,
+        '--title-scale': titleScale,
+        '--desc-scale': descScale
       } as React.CSSProperties}
     >
 
       {/* ── Card ─────────────────────────────────────────────────────────── */}
       <div
-        className="rounded-xl bg-white overflow-visible select-none transition-shadow flex flex-col relative"
+        className="absolute top-0 left-0 w-full min-h-[100%] min-w-[100%] group-hover/card:min-w-[320px] group-hover/card:w-max rounded-xl bg-white overflow-visible select-none transition-all duration-300 flex flex-col z-10 group-hover/card:z-50 group-hover/card:drop-shadow-2xl"
         style={{
-          minHeight: data.height ? `${data.height}px` : '150px',
           borderLeft: `5px solid ${accentColor}`,
           boxShadow: isResizing
             ? `0 8px 30px 0 ${accentColor}44, 0 0 0 2px ${accentColor}66`
             : '0 2px 14px 0 rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.04)',
         }}
       >
-        <Handle
-          type="target"
-          position={Position.Left}
-          className="!w-3.5 !h-3.5 !bg-white !border-2 !-left-2.5 transition-transform hover:scale-125"
-          style={{ borderColor: accentColor, top: '50%' }}
-          title="Entrada de dependência"
-        />
-        <Handle
-          type="source"
-          position={Position.Right}
-          className="!w-4 !h-4 !bg-white !border-2 !-right-5 transition-transform hover:scale-125 hover:bg-gray-50 cursor-crosshair"
-          style={{ borderColor: accentColor, top: '50%' }}
-          title="Arraste para conectar com outro card"
-        />
+        {!isReadOnly && (
+          <Handle
+            type="target"
+            position={Position.Left}
+            className="!w-3.5 !h-3.5 !bg-white !border-2 !-left-2.5 transition-transform hover:scale-125"
+            style={{ borderColor: accentColor, top: '50%' }}
+            title="Entrada de dependência"
+          />
+        )}
+        {!isReadOnly && (
+          <Handle
+            type="source"
+            position={Position.Right}
+            className="!w-4 !h-4 !bg-white !border-2 !-right-5 transition-transform hover:scale-125 hover:bg-gray-50 cursor-crosshair"
+            style={{ borderColor: accentColor, top: '50%' }}
+            title="Arraste para conectar com outro card"
+          />
+        )}
 
         {/* LOD Constraints */}
-        <div className={`flex flex-col h-full ${zoom < 0.15 ? 'p-2 justify-center' : 'px-5 pt-4 pb-5 space-y-4'}`}>
+        <div className={`flex flex-col h-full w-full ${zoom < 0.15 ? 'p-2 justify-center' : 'p-3 space-y-3'}`}>
 
           {/* ── Row 1: Stage badge · Pencil ──────────────────────────────── */}
           <div className="flex items-center justify-between gap-2 min-w-0">
@@ -258,8 +270,8 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
                 <button
                   type="button"
                   onMouseDown={(e) => e.stopPropagation()}
-                  onClick={(e) => { e.stopPropagation(); setStagePickerRect(e.currentTarget.getBoundingClientRect()); }}
-                  className="inline-flex items-center gap-1.5 font-bold px-4 py-1.5 rounded-full text-white truncate max-w-full hover:brightness-110 transition-all shadow-sm text-[calc(0.875rem*var(--text-scale))]"
+                  onClick={(e) => { e.stopPropagation(); if (!isReadOnly) setStagePickerRect(e.currentTarget.getBoundingClientRect()); }}
+                  className={`inline-flex items-center gap-1.5 font-bold px-4 py-1.5 rounded-full text-white truncate max-w-full transition-all shadow-sm text-[calc(0.875rem*var(--text-scale))] ${!isReadOnly ? 'hover:brightness-110' : ''}`}
                   style={{ backgroundColor: stageBadgeColor }}
                   title="Clique para trocar etapa"
                 >
@@ -356,8 +368,9 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
             </div>
 
             {/* Right side actions */}
-            <div className="flex items-center gap-1.5 shrink-0 opacity-0 group-hover/card:opacity-100 transition-opacity">
-              {colorMode === 'custom' && (
+            {!isReadOnly && (
+              <div className="flex items-center gap-1.5 shrink-0 opacity-0 group-hover/card:opacity-100 transition-opacity">
+                {colorMode === 'custom' && (
                 <div className="relative">
                   <button
                     className="w-7 h-7 rounded-full flex items-center justify-center transition-colors shadow-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 text-gray-400 hover:text-gray-600"
@@ -394,6 +407,7 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
                 <Pencil className="w-3.5 h-3.5" />
               </button>
             </div>
+          )}
           </div>
 
           {/* ── Row 2: Title ─────────────────────────────────────────────── */}
@@ -413,11 +427,11 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
             />
           ) : (
             <p
-              className="font-black leading-tight cursor-text truncate text-[calc(1.75rem*var(--text-scale))]"
+              className="font-black leading-tight cursor-text break-words line-clamp-3 mb-1 text-[calc(1.75rem*var(--title-scale))]"
               style={{ color: accentColor }}
-              onDoubleClick={(e) => { e.stopPropagation(); setLocalTitle(data.title); setEditingTitle(true); }}
+              onDoubleClick={(e) => { e.stopPropagation(); if (!isReadOnly) { setLocalTitle(data.title); setEditingTitle(true); } }}
               onMouseDown={(e) => e.stopPropagation()}
-              title="Duplo clique para editar"
+              title={!isReadOnly ? "Duplo clique para editar" : undefined}
             >
               {data.title || 'Nova tarefa'}
             </p>
@@ -427,9 +441,9 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
           <div className="relative" onMouseDown={(e) => e.stopPropagation()}>
               <button
                 type="button"
-                onClick={(e) => { e.stopPropagation(); setPersonPickerRect(e.currentTarget.getBoundingClientRect()); }}
-                className="flex items-center gap-2 min-w-0 w-full hover:opacity-75 transition-opacity"
-                title="Clique para alterar responsável"
+                onClick={(e) => { e.stopPropagation(); if (!isReadOnly) setPersonPickerRect(e.currentTarget.getBoundingClientRect()); }}
+                className={`flex items-center gap-2 min-w-0 w-full transition-opacity ${!isReadOnly ? 'hover:opacity-75' : ''}`}
+                title={!isReadOnly ? "Clique para alterar responsável" : undefined}
               >
                 <div
                   className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-bold text-white shadow-sm"
@@ -538,27 +552,29 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
 
           {/* ── Row 4: Dates + Duration ───────────────────────────────────── */}
           <div
-            className="relative flex items-center gap-1.5"
+            className="relative flex items-center justify-between w-full gap-2"
             onMouseDown={(e) => e.stopPropagation()}
           >
+            <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden whitespace-nowrap">
               <Calendar className="w-3.5 h-3.5 shrink-0" style={{ color: accentColor }} />
 
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); setDatePickerRect(e.currentTarget.getBoundingClientRect()); }}
-              className="font-semibold tabular-nums hover:underline underline-offset-2 transition-colors text-[calc(0.875rem*var(--text-scale))]"
-              style={{ color: accentColor }}
-              title="Clique para mudar data de início"
-            >
-              {format(startDate, 'dd MMM', { locale: ptBR })}
-            </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); if (!isReadOnly) setDatePickerRect(e.currentTarget.getBoundingClientRect()); }}
+                className={`font-semibold tabular-nums transition-colors text-[calc(0.875rem*var(--text-scale))] shrink-0 ${!isReadOnly ? 'hover:underline underline-offset-2' : ''}`}
+                style={{ color: accentColor }}
+                title={!isReadOnly ? "Clique para mudar data de início" : undefined}
+              >
+                {format(startDate, 'dd MMM', { locale: ptBR })}
+              </button>
 
-            <span className="text-gray-400 text-[calc(0.875rem*var(--text-scale))]">→</span>
-            <span className="font-medium text-gray-400 tabular-nums text-[calc(0.875rem*var(--text-scale))]">
-              {format(endDate, 'dd MMM', { locale: ptBR })}
-            </span>
+              <span className="text-gray-400 text-[calc(0.875rem*var(--text-scale))] shrink-0">→</span>
+              <span className="font-medium text-gray-400 tabular-nums text-[calc(0.875rem*var(--text-scale))] shrink-0">
+                {format(endDate, 'dd MMM', { locale: ptBR })}
+              </span>
+            </div>
 
-            <span className="ml-auto">
+            <div className="shrink-0 flex items-center justify-end">
               {editingDuration ? (
                 <input
                   autoFocus
@@ -580,17 +596,18 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
                 <button
                   type="button"
                   onMouseDown={(e) => e.stopPropagation()}
-                  onClick={(e) => { e.stopPropagation(); setLocalDuration(String(data.duration)); setEditingDuration(true); }}
+                  onClick={(e) => { e.stopPropagation(); if (!isReadOnly) { setLocalDuration(String(data.duration)); setEditingDuration(true); } }}
                   className="font-bold px-3 py-1 rounded-full transition-colors text-[calc(0.875rem*var(--text-scale))]"
                   style={{ color: accentColor, backgroundColor: `${accentColor}18` }}
-                  title="Clique para editar duração"
+                  title={!isReadOnly ? "Clique para editar duração" : undefined}
                 >
                   {data.duration}d
                 </button>
               )}
-            </span>
+            </div>
+          </div>
 
-            <PopoverPortal anchorRect={datePickerRect} onClose={() => setDatePickerRect(null)}>
+          <PopoverPortal anchorRect={datePickerRect} onClose={() => setDatePickerRect(null)}>
                 <div className="bg-white dark:bg-gray-900 shadow-2xl border border-gray-100 dark:border-gray-700 rounded-xl p-2.5 animate-in fade-in zoom-in duration-200">
                   <p className="text-[10px] text-gray-400 mb-1.5 font-medium">Data de início</p>
                   <input
@@ -611,7 +628,6 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
                   />
                 </div>
               </PopoverPortal>
-            </div>
 
           {/* ── Row 5: Description ───────────────────────────────────────── */}
           <div className="mt-auto pt-4 flex-1 flex flex-col">
@@ -631,17 +647,17 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
                 />
               ) : (
                 <div
-                  className="flex-1 cursor-text"
-                  onDoubleClick={(e) => { e.stopPropagation(); setEditingDesc(true); }}
+                  className={`flex-1 ${!isReadOnly ? 'cursor-text' : ''}`}
+                  onDoubleClick={(e) => { e.stopPropagation(); if (!isReadOnly) setEditingDesc(true); }}
                   onMouseDown={(e) => e.stopPropagation()}
-                  title="Duplo clique para editar descrição"
+                  title={!isReadOnly ? "Duplo clique para editar descrição" : undefined}
                 >
                   {data.description ? (
-                    <p className="text-gray-500 dark:text-gray-400 leading-snug text-[calc(0.75rem*var(--text-scale))] whitespace-pre-wrap break-words">
+                    <p className="text-gray-500 dark:text-gray-400 leading-snug text-[calc(0.75rem*var(--desc-scale))] whitespace-pre-wrap break-words">
                       {data.description}
                     </p>
                   ) : (
-                    <p className="text-gray-300 dark:text-gray-600 leading-snug text-[calc(0.75rem*var(--text-scale))] italic">
+                    <p className="text-gray-300 dark:text-gray-600 leading-snug text-[calc(0.75rem*var(--desc-scale))] italic">
                       Acrescentar descrição...
                     </p>
                   )}
@@ -651,40 +667,46 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
         </div>
         
         {/* Bottom Resize Handle */}
-        <div
-          className="nodrag absolute bottom-0 left-0 w-full h-[6px] cursor-ns-resize hover:bg-gray-200/50 dark:hover:bg-gray-700/50 transition-colors z-20 flex justify-center items-center"
-          onMouseDown={handleVerticalResizeMouseDown}
-          title="Arraste para ajustar a altura"
-        >
-          <div className="w-8 h-1 rounded-full bg-gray-200 dark:bg-gray-700 opacity-0 group-hover/card:opacity-100 transition-opacity" />
-        </div>
+        {!isReadOnly && (
+          <div
+            className="nodrag absolute bottom-0 left-0 w-full h-[6px] cursor-ns-resize hover:bg-gray-200/50 dark:hover:bg-gray-700/50 transition-colors z-20 flex justify-center items-center"
+            onMouseDown={handleVerticalResizeMouseDown}
+            title="Arraste para ajustar a altura"
+          >
+            <div className="w-8 h-1 rounded-full bg-gray-200 dark:bg-gray-700 opacity-0 group-hover/card:opacity-100 transition-opacity" />
+          </div>
+        )}
 
         {/* Delete node button */}
-        <button
-          onClick={(e) => { e.stopPropagation(); removeNode(id); }}
-          className="absolute -top-3 -right-3 w-6 h-6 rounded-full bg-red-100 dark:bg-red-900 hover:bg-red-500 dark:hover:bg-red-500 text-red-500 dark:text-red-300 hover:text-white dark:hover:text-white flex items-center justify-center transition-all opacity-0 group-hover/card:opacity-100 shadow-sm z-10 pointer-events-auto"
-          style={{ transform: `scale(${btnScale})`, transformOrigin: 'center' }}
-          title="Remover tarefa"
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
-      </div>
+        {!isReadOnly && (
+          <button
+            onClick={(e) => { e.stopPropagation(); removeNode(id); }}
+            className="absolute -top-3 -right-3 w-6 h-6 rounded-full bg-red-100 dark:bg-red-900 hover:bg-red-500 dark:hover:bg-red-500 text-red-500 dark:text-red-300 hover:text-white dark:hover:text-white flex items-center justify-center transition-all opacity-0 group-hover/card:opacity-100 shadow-sm z-30 pointer-events-auto"
+            style={{ transform: `scale(${btnScale})`, transformOrigin: 'center' }}
+            title="Remover tarefa"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
 
-      {/* ── Resize strip — Horizontal width duration resize ── */}
-      <div
-        className="nodrag absolute top-0 right-0 h-full w-4 cursor-ew-resize z-20 rounded-r-xl flex items-center justify-center"
-        onMouseDown={handleResizeMouseDown}
-        title="Arraste para alterar a duração"
-      >
-        <div
-          className={`w-1 rounded-full transition-all duration-150 ${
-            isResizing ? 'opacity-90' : 'opacity-20 group-hover/card:opacity-70'
-          }`}
-          style={{
-            height: isResizing ? '70%' : '40%',
-            backgroundColor: accentColor,
-          }}
-        />
+        {/* ── Resize strip — Horizontal width duration resize ── */}
+        {!isReadOnly && (
+          <div
+            className="nodrag absolute top-0 right-0 h-full w-4 cursor-ew-resize z-20 rounded-r-xl flex items-center justify-center opacity-0 group-hover/card:opacity-100"
+            onMouseDown={handleResizeMouseDown}
+            title="Arraste para alterar a duração"
+          >
+            <div
+              className={`w-1 rounded-full transition-all duration-150 ${
+                isResizing ? 'opacity-90' : 'opacity-20 group-hover/card:opacity-70'
+              }`}
+              style={{
+                height: isResizing ? '70%' : '40%',
+                backgroundColor: accentColor,
+              }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { ArrowLeft, Plus, Diamond, Settings, Grid3x3, CalendarOff, Palette, ChevronDown, Type } from 'lucide-react';
+import { useParams } from 'next/navigation';
+import { ArrowLeft, Plus, Diamond, Settings, Grid3x3, CalendarOff, Palette, ChevronDown, Type, Share } from 'lucide-react';
 import { useStore, type ColorMode } from '@/store/useStore';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,6 +17,7 @@ const COLOR_MODE_LABELS: Record<ColorMode, string> = {
 };
 
 export function TopBar() {
+  const params = useParams();
   const creationMode = useStore((s) => s.creationMode);
   const setCreationMode = useStore((s) => s.setCreationMode);
   
@@ -83,8 +85,25 @@ export function TopBar() {
       </div>
 
       {/* Right: settings */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs gap-1.5 font-medium"
+          onClick={() => {
+            if (typeof window !== 'undefined' && params?.id) {
+              const url = `${window.location.origin}/share/${params.id}`;
+              navigator.clipboard.writeText(url);
+              alert('Link copiado: ' + url);
+            }
+          }}
+        >
+          <Share className="w-3.5 h-3.5" />
+          Compartilhar
+        </Button>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5">
             <Settings className="w-3.5 h-3.5" />
             Configurações
@@ -181,6 +200,7 @@ export function TopBar() {
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
+      </div>
     </div>
   );
 }

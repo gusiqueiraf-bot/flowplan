@@ -59,6 +59,7 @@ interface FlowPlanState {
   colorMode: ColorMode;
   viewportX: number;
   viewportZoom: number;
+  isReadOnly: boolean;
 
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
@@ -94,6 +95,7 @@ interface FlowPlanState {
   setShowWeekends: (show: boolean) => void;
   setShowGrid: (show: boolean) => void;
   setColorMode: (mode: ColorMode) => void;
+  setIsReadOnly: (ro: boolean) => void;
   setState: (state: Partial<FlowPlanState>) => void;
 }
 
@@ -115,6 +117,7 @@ export const useStore = create<FlowPlanState>()(
   colorMode: 'stage',
   viewportX: 0,
   viewportZoom: 1,
+  isReadOnly: false,
 
   onNodesChange: (changes) =>
     set({ nodes: applyNodeChanges(changes, get().nodes) }),
@@ -142,7 +145,8 @@ export const useStore = create<FlowPlanState>()(
     const id = `task-${++nodeCounter}`;
     const x = position?.x ?? DAY_WIDTH * (nodeCounter - 1);
     const y = position?.y ?? (140 + ((nodeCounter - 1) % 6) * 100);
-    set({ nodes: [...get().nodes, { id, type: 'taskNode', position: { x, y }, data }] });
+    const finalData = { height: 180, ...data };
+    set({ nodes: [...get().nodes, { id, type: 'taskNode', position: { x, y }, data: finalData }] });
   },
 
   addEvent: (data, position) => {
@@ -244,5 +248,6 @@ export const useStore = create<FlowPlanState>()(
   setShowWeekends: (show) => set({ showWeekends: show }),
   setShowGrid: (show) => set({ showGrid: show }),
   setColorMode: (mode) => set({ colorMode: mode }),
+  setIsReadOnly: (ro) => set({ isReadOnly: ro }),
   setState: (state) => set(state),
 }), { partialize: (state) => ({ nodes: state.nodes, edges: state.edges }) }));

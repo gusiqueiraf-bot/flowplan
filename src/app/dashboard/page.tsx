@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Trash2 } from 'lucide-react'
 
 interface Project {
   id: string
@@ -80,6 +81,21 @@ export default function DashboardPage() {
     router.push('/login')
   }
 
+  const handleDeleteProject = async (e: React.MouseEvent, id: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    if (window.confirm('Deseja excluir este projeto?')) {
+      const { error } = await supabase.from('projects').delete().eq('id', id)
+      if (error) {
+        console.error('Error deleting project:', error)
+        alert('Erro ao excluir projeto.')
+      } else {
+        setProjects(projects.filter((p) => p.id !== id))
+      }
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
@@ -131,9 +147,18 @@ export default function DashboardPage() {
             >
               <div className="flex justify-between items-start mb-4">
                 <h3 className="text-xl font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">{project.name}</h3>
-                <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
-                  Editor
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                    Editor
+                  </span>
+                  <button
+                    onClick={(e) => handleDeleteProject(e, project.id)}
+                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                    title="Excluir Projeto"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
               <p className="text-sm text-gray-500">
                 Criado em: {new Date(project.created_at).toLocaleDateString('pt-BR')}

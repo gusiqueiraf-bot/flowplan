@@ -50,6 +50,7 @@ export function AddTaskDialog({ open, onOpenChange }: Props) {
       responsibleId: responsible.trim() || undefined,
       stage: stage || undefined,
       description: description.trim() || undefined,
+      height: 180,
     });
     resetForm();
     onOpenChange(false);

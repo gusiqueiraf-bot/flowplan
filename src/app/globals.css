@@ -79,6 +79,13 @@
 }
 
 /* React Flow overrides */
+.react-flow__node {
+  transition: z-index 0s;
+}
+.react-flow__node:hover {
+  z-index: 50 !important;
+}
+
 .react-flow__background {
   background-color: hsl(var(--canvas-bg)) !important;
 }

@@ -3,7 +3,6 @@ import { format, addDays, isWeekend, startOfWeek, isSameDay, startOfMonth } from
 import { ptBR } from 'date-fns/locale';
 
 const DAY_WIDTH_BASE = 120;
-const TOTAL_DAYS = 120;
 const TIMELINE_HEIGHT = 48; // matches TopBar height
 
 export function Timeline() {
@@ -11,8 +10,29 @@ export function Timeline() {
   const showWeekends = useStore((s) => s.showWeekends);
   const x = useStore((s) => s.viewportX);
   const zoom = useStore((s) => s.viewportZoom);
+  const nodes = useStore((s) => s.nodes);
+
+  const maxPx = nodes.reduce((max, n) => {
+    let w = 80;
+    if (n.type === 'taskNode') {
+      w = ((n.data?.duration as number) || 1) * DAY_WIDTH_BASE;
+    } else {
+      w = (n.data?.width as number) || 80;
+    }
+    return Math.max(max, n.position.x + w);
+  }, 0);
+  // O usuário pediu explicitamente: "Se qualquer node estiver a menos de 500px do fim da grade, adicione mais colunas"
+  // Então, o px final necessário é o maxPx + 500.
+  const maxNodeDays = Math.ceil((maxPx + 500) / DAY_WIDTH_BASE);
 
   const dayWidth = DAY_WIDTH_BASE * zoom;
+  const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1920;
+  // -x is how far we panned right (viewportX is negative when panning right). 
+  // We divide by dayWidth (scaled) to know how many days are hidden to the left.
+  const panDays = Math.ceil((-x + screenWidth) / dayWidth);
+
+  const TOTAL_DAYS = Math.max(120, maxNodeDays + 30, panDays + 30);
+
   const offsetX = x;
 
   const renderMode = zoom < 0.15 ? 'month' : zoom < 0.4 ? 'week' : 'day';
@@ -30,7 +50,7 @@ export function Timeline() {
           backdropFilter: 'blur(8px)',
         }}
       >
-        <div className="flex absolute" style={{ left: offsetX }}>
+        <div className="flex absolute w-max" style={{ left: offsetX }}>
           {Array.from({ length: TOTAL_DAYS }, (_, i) => {
             const date = addDays(projectStartDate, i);
             const weekend = isWeekend(date);

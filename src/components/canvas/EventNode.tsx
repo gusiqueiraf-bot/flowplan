@@ -30,6 +30,7 @@ function EventNodeComponent({ data, xPos, id, selected }: NodeProps<EventNodeDat
   const updateNodeData   = useStore((s) => s.updateNodeData);
   const removeNode       = useStore((s) => s.removeNode);
   const zoom             = useStore((s) => s.viewportZoom);
+  const isReadOnly       = useStore((s) => s.isReadOnly);
 
   const textScale = Math.min(2.5, Math.max(0.8, 1 / Math.pow(zoom, 0.5)));
   const btnScale = Math.max(1, 0.8 / zoom);
@@ -64,21 +65,23 @@ function EventNodeComponent({ data, xPos, id, selected }: NodeProps<EventNodeDat
 
   return (
     <>
-      <NodeResizer 
-        color={color}
-        isVisible={selected || isHovered}
-        minWidth={40}
-        minHeight={40}
-        onResizeStart={() => useStore.temporal.getState().pause()}
-        onResizeEnd={() => {
-          useStore.temporal.getState().resume();
-          useStore.setState((s) => ({ ...s }));
-        }}
-        onResize={(_, params) => {
-          const size = Math.max(params.width, params.height);
-          updateNodeData(id, { width: size, height: size });
-        }}
-      />
+      {!isReadOnly && (
+        <NodeResizer 
+          color={color}
+          isVisible={selected || isHovered}
+          minWidth={40}
+          minHeight={40}
+          onResizeStart={() => useStore.temporal.getState().pause()}
+          onResizeEnd={() => {
+            useStore.temporal.getState().resume();
+            useStore.setState((s) => ({ ...s }));
+          }}
+          onResize={(_, params) => {
+            const size = Math.max(params.width, params.height);
+            updateNodeData(id, { width: size, height: size });
+          }}
+        />
+      )}
       <div 
         className="group/event relative flex flex-col items-center gap-1" 
         style={{ width: nodeWidth, minHeight: nodeWidth, '--text-scale': textScale, '--node-scale': nodeScale } as React.CSSProperties}
@@ -86,28 +89,32 @@ function EventNodeComponent({ data, xPos, id, selected }: NodeProps<EventNodeDat
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Handles */}
-      <Handle
-        type="target"
-        position={Position.Left}
-        className="!w-3.5 !h-3.5 !border-2 !bg-white"
-        style={{ borderColor: color, top: '40%' }}
-        title="Entrada de dependência"
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        className="!w-3.5 !h-3.5 !border-2 !bg-white"
-        style={{ borderColor: color, top: '40%' }}
-        title="Arraste para conectar"
-      />
+      {!isReadOnly && (
+        <>
+          <Handle
+            type="target"
+            position={Position.Left}
+            className="!w-3.5 !h-3.5 !border-2 !bg-white"
+            style={{ borderColor: color, top: '40%' }}
+            title="Entrada de dependência"
+          />
+          <Handle
+            type="source"
+            position={Position.Right}
+            className="!w-3.5 !h-3.5 !border-2 !bg-white"
+            style={{ borderColor: color, top: '40%' }}
+            title="Arraste para conectar"
+          />
+        </>
+      )}
 
       {/* Diamond + color picker container styled with exact diagonal height to push text down correctly */}
       <div className="relative flex items-center justify-center" style={{ width: 62 * nodeScale, height: 62 * nodeScale }}>
         <button
           type="button"
           onMouseDown={(e) => e.stopPropagation()}
-          onClick={(e) => { e.stopPropagation(); setShowColorPicker((v) => !v); }}
-          className="rotate-45 rounded-lg transition-all hover:scale-110 active:scale-95"
+          onClick={(e) => { e.stopPropagation(); if (!isReadOnly) setShowColorPicker((v) => !v); }}
+          className={`rotate-45 rounded-lg transition-all ${!isReadOnly ? 'hover:scale-110 active:scale-95' : ''}`}
           style={{
             width: 44 * nodeScale,
             height: 44 * nodeScale,
@@ -168,10 +175,10 @@ function EventNodeComponent({ data, xPos, id, selected }: NodeProps<EventNodeDat
         />
       ) : (
         <p
-          className="mt-2 font-bold whitespace-nowrap cursor-text text-center px-1 text-[calc(0.75rem*var(--text-scale)*var(--node-scale))]"
+          className={`mt-2 font-bold whitespace-nowrap px-1 text-[calc(0.75rem*var(--text-scale)*var(--node-scale))] ${!isReadOnly ? 'cursor-text' : ''}`}
           style={{ color }}
-          onDoubleClick={(e) => { e.stopPropagation(); setEditingTitle(true); }}
-          title="Duplo clique para editar"
+          onDoubleClick={(e) => { e.stopPropagation(); if (!isReadOnly) setEditingTitle(true); }}
+          title={!isReadOnly ? "Duplo clique para editar" : undefined}
         >
           {data.title || 'Marco'}
         </p>
@@ -186,14 +193,16 @@ function EventNodeComponent({ data, xPos, id, selected }: NodeProps<EventNodeDat
       </span>
 
       {/* Delete node button */}
-      <button
-        onClick={(e) => { e.stopPropagation(); removeNode(id); }}
-        className="absolute -top-3 -right-3 w-6 h-6 rounded-full bg-red-100 hover:bg-red-500 text-red-500 hover:text-white flex items-center justify-center transition-all opacity-0 group-hover/event:opacity-100 shadow-sm z-10 pointer-events-auto"
-        style={{ transform: `scale(${btnScale})`, transformOrigin: 'center' }}
-        title="Remover marco"
-      >
-        <X className="w-3.5 h-3.5" />
-      </button>
+      {!isReadOnly && (
+        <button
+          onClick={(e) => { e.stopPropagation(); removeNode(id); }}
+          className="absolute -top-3 -right-3 w-6 h-6 rounded-full bg-red-100 hover:bg-red-500 text-red-500 hover:text-white flex items-center justify-center transition-all opacity-0 group-hover/event:opacity-100 shadow-sm z-10 pointer-events-auto"
+          style={{ transform: `scale(${btnScale})`, transformOrigin: 'center' }}
+          title="Remover marco"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      )}
 
     </div>
     </>

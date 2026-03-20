@@ -75,6 +75,7 @@ export function TaskDialog({ open, onOpenChange, nodeId }: Props) {
       responsibleId: responsibleId || undefined,
       stage: stage || undefined,
       description: description.trim() || undefined,
+      height: (nodeData?.height as number) || 180,
     };
 
     if (isEdit && nodeId) {
