@@ -47,7 +47,7 @@ export function AddTaskDialog({ open, onOpenChange }: Props) {
       title: title.trim() || 'Nova tarefa',
       duration: Math.max(1, duration),
       color,
-      responsible: responsible.trim() || undefined,
+      responsibleId: responsible.trim() || undefined,
       stage: stage || undefined,
       description: description.trim() || undefined,
     });
