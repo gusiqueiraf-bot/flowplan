@@ -69,6 +69,7 @@ function FlowPlanEditor({ projectId }: { projectId: string }) {
       .from('projects')
       .select('*')
       .eq('id', projectId)
+      .eq('user_id', session.user.id)
       .single()
 
     if (error || !data) {
@@ -121,6 +122,9 @@ function FlowPlanEditor({ projectId }: { projectId: string }) {
     const saveState = async () => {
       setSaving(true)
       try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) return
+
         const { error } = await supabase
           .from('projects')
           .update({
@@ -137,7 +141,8 @@ function FlowPlanEditor({ projectId }: { projectId: string }) {
               colorMode,
             }
           })
-          .eq('id', projectId);
+          .eq('id', projectId)
+          .eq('user_id', session.user.id);
         
         if (error) {
           console.error("SUPABASE SAVE ERROR:", error);

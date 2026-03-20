@@ -53,7 +53,7 @@ export function TopBar() {
     };
 
     // Obter o nome do projeto atual
-    const { data: currData } = await supabase.from('projects').select('name').eq('id', params.id).single();
+    const { data: currData } = await supabase.from('projects').select('name').eq('id', params.id).eq('user_id', user.id).single();
     const templateName = prompt("Nome do novo Template:", currData ? `[Template] ${currData.name}` : "Novo Template");
     
     if (!templateName) return;

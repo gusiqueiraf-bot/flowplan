@@ -37,6 +37,7 @@ export default function DashboardPage() {
     const { data, error } = await supabase
       .from('projects')
       .select('*')
+      .eq('user_id', session.user.id)
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -133,7 +134,9 @@ export default function DashboardPage() {
     e.stopPropagation()
     
     if (window.confirm('Deseja excluir este projeto?')) {
-      const { error } = await supabase.from('projects').delete().eq('id', id)
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return;
+      const { error } = await supabase.from('projects').delete().eq('id', id).eq('user_id', session.user.id)
       if (error) {
         console.error('Error deleting project:', error)
         alert('Erro ao excluir projeto.')
