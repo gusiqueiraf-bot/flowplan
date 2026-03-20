@@ -81,6 +81,11 @@ function FlowPlanEditor({ projectId }: { projectId: string }) {
 
     // Hydrate store
     if (data.content) {
+      let safeDate = new Date();
+      if (data.content.projectStartDate) {
+        const d = new Date(data.content.projectStartDate);
+        if (!isNaN(d.getTime())) safeDate = d;
+      }
       setState({
         nodes: data.content.nodes || [],
         edges: data.content.edges || [],
@@ -88,7 +93,7 @@ function FlowPlanEditor({ projectId }: { projectId: string }) {
         viewportX: data.content.viewportX || 0,
         stages: data.content.stages || useStore.getState().stages,
         people: data.content.people || useStore.getState().people,
-        projectStartDate: data.content.projectStartDate ? new Date(data.content.projectStartDate) : new Date(),
+        projectStartDate: safeDate,
         showWeekends: data.content.showWeekends ?? true,
         showGrid: data.content.showGrid ?? true,
         colorMode: data.content.colorMode ?? 'stage',
