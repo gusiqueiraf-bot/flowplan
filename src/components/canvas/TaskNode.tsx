@@ -206,13 +206,17 @@ function TaskNodeComponent({ data, xPos, id }: NodeProps<TaskNodeData>) {
 
   const commitNewStage = () => {
     if (newStageLabel.trim()) {
-      addStage({ label: newStageLabel.trim(), color: newStageColor });
+      const newId = `stage-${Date.now()}`;
+      addStage({ id: newId, label: newStageLabel.trim(), color: newStageColor });
+      selectStage(newStageLabel.trim());
     }
     setNewStageLabel(''); setAddingStage(false);
   };
   const commitNewPerson = () => {
     if (newPersonName.trim()) {
-      addPerson({ name: newPersonName.trim(), color: newPersonColor });
+      const newId = `per-${Date.now()}`;
+      addPerson({ id: newId, name: newPersonName.trim(), color: newPersonColor });
+      selectPerson(newId);
     }
     setNewPersonName(''); setAddingPerson(false);
   };

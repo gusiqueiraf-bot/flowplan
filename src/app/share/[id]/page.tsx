@@ -51,6 +51,12 @@ function ShareViewer({ projectId }: { projectId: string }) {
         edges: data.content.edges || [],
         viewportZoom: data.content.viewportZoom || 1,
         viewportX: data.content.viewportX || 0,
+        stages: data.content.stages || useStore.getState().stages,
+        people: data.content.people || useStore.getState().people,
+        projectStartDate: data.content.projectStartDate ? new Date(data.content.projectStartDate) : new Date(),
+        showWeekends: data.content.showWeekends ?? true,
+        showGrid: data.content.showGrid ?? true,
+        colorMode: data.content.colorMode ?? 'stage',
       })
     }
     setLoading(false)

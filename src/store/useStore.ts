@@ -16,14 +16,7 @@ export interface Stage {
   color: string;
 }
 
-export const DEFAULT_STAGES: Stage[] = [
-  { id: 'planejamento', label: 'Planejamento', color: '#8B5CF6' },
-  { id: 'design',       label: 'Design',       color: '#EC4899' },
-  { id: 'dev',          label: 'Desenvolvimento', color: '#3B82F6' },
-  { id: 'testes',       label: 'Testes',       color: '#10B981' },
-  { id: 'revisao',      label: 'Revisão',      color: '#F59E0B' },
-  { id: 'entrega',      label: 'Entrega',      color: '#EF4444' },
-];
+export const DEFAULT_STAGES: Stage[] = [];
 
 /* ─── Person ─────────────────────────────────────────────────────────────── */
 export interface Person {
@@ -32,13 +25,7 @@ export interface Person {
   color: string;
 }
 
-export const DEFAULT_PEOPLE: Person[] = [
-  { id: 'per1', name: 'João Silva',   color: '#3B82F6' },
-  { id: 'per2', name: 'Ana Costa',    color: '#EC4899' },
-  { id: 'per3', name: 'Carlos Lima',  color: '#10B981' },
-  { id: 'per4', name: 'Bia Rocha',    color: '#F59E0B' },
-  { id: 'per5', name: 'Diego Motta',  color: '#8B5CF6' },
-];
+export const DEFAULT_PEOPLE: Person[] = [];
 
 /* ─── Color mode ─────────────────────────────────────────────────────────── */
 export type ColorMode = 'stage' | 'responsible' | 'custom';
@@ -83,11 +70,11 @@ interface FlowPlanState {
   setIsCreatingTask: (v: boolean) => void;
   setCreationMode: (mode: 'task' | 'event' | 'text') => void;
 
-  addStage: (stage: Omit<Stage, 'id'>) => void;
+  addStage: (stage: Stage) => void;
   updateStage: (id: string, updates: Partial<Omit<Stage, 'id'>>) => void;
   removeStage: (id: string) => void;
 
-  addPerson: (person: Omit<Person, 'id'>) => void;
+  addPerson: (person: Person) => void;
   updatePerson: (id: string, updates: Partial<Omit<Person, 'id'>>) => void;
   removePerson: (id: string) => void;
 
@@ -231,14 +218,14 @@ export const useStore = create<FlowPlanState>()(
   setCreationMode: (mode) => set({ creationMode: mode }),
 
   addStage: (stage) =>
-    set({ stages: [...get().stages, { ...stage, id: `stage-${Date.now()}` }] }),
+    set({ stages: [...get().stages, stage] }),
   updateStage: (id, updates) =>
     set({ stages: get().stages.map((s) => (s.id === id ? { ...s, ...updates } : s)) }),
   removeStage: (id) =>
     set({ stages: get().stages.filter((s) => s.id !== id) }),
 
   addPerson: (person) =>
-    set({ people: [...get().people, { ...person, id: `per-${Date.now()}` }] }),
+    set({ people: [...get().people, person] }),
   updatePerson: (id, updates) =>
     set({ people: get().people.map((p) => (p.id === id ? { ...p, ...updates } : p)) }),
   removePerson: (id) =>

@@ -33,6 +33,12 @@ function FlowPlanEditor({ projectId }: { projectId: string }) {
   const onEdgesChange = useStore((s) => s.onEdgesChange)
   const onConnect = useStore((s) => s.onConnect)
   const showGrid = useStore((s) => s.showGrid)
+  const showWeekends = useStore((s) => s.showWeekends)
+  const colorMode = useStore((s) => s.colorMode)
+  const projectStartDate = useStore((s) => s.projectStartDate)
+  const stages = useStore((s) => s.stages)
+  const people = useStore((s) => s.people)
+
   const setViewport = useStore((s) => s.setViewport)
   const editingNodeId = useStore((s) => s.editingNodeId)
   const setEditingNodeId = useStore((s) => s.setEditingNodeId)
@@ -78,6 +84,12 @@ function FlowPlanEditor({ projectId }: { projectId: string }) {
         edges: data.content.edges || [],
         viewportZoom: data.content.viewportZoom || 1,
         viewportX: data.content.viewportX || 0,
+        stages: data.content.stages || useStore.getState().stages,
+        people: data.content.people || useStore.getState().people,
+        projectStartDate: data.content.projectStartDate ? new Date(data.content.projectStartDate) : new Date(),
+        showWeekends: data.content.showWeekends ?? true,
+        showGrid: data.content.showGrid ?? true,
+        colorMode: data.content.colorMode ?? 'stage',
       })
     }
     setLoading(false)
@@ -115,7 +127,13 @@ function FlowPlanEditor({ projectId }: { projectId: string }) {
             nodes,
             edges,
             viewportZoom,
-            viewportX
+            viewportX,
+            stages,
+            people,
+            projectStartDate: projectStartDate.toISOString(),
+            showWeekends,
+            showGrid,
+            colorMode,
           }
         })
         .eq('id', projectId);
@@ -125,7 +143,7 @@ function FlowPlanEditor({ projectId }: { projectId: string }) {
 
     const timeoutId = setTimeout(saveState, 2000)
     return () => clearTimeout(timeoutId)
-  }, [nodes, edges, viewportZoom, viewportX, projectId, loading])
+  }, [nodes, edges, viewportZoom, viewportX, projectId, loading, stages, people, projectStartDate, showWeekends, showGrid, colorMode])
 
   const handlePaneDoubleClick = useCallback(
     (event: React.MouseEvent) => {
